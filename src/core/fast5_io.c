@@ -1,7 +1,6 @@
 // **********************************************************************
 // fast5_io.c - Fast5 File I/O Operations for Sequelizer
 // **********************************************************************
-// S Magierowski Jul 31 2025
 // Migrated from ciren Fast5 I/O operations including:
 // - Fast5 file discovery and pattern matching  
 // - Fast5 metadata extraction (single-read and multi-read formats)
@@ -127,7 +126,7 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
   } else if (S_ISDIR(path_stat.st_mode)) {
     // Directory
     if (recursive) {
-        return find_fast5_files_recursive(input_path, count);
+      return find_fast5_files_recursive(input_path, count);
     } else {
       // Non-recursive directory search
       DIR *dir;
@@ -136,7 +135,7 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
       
       dir = opendir(input_path);
       if (!dir) {
-          errx(EXIT_FAILURE, "Cannot open directory: %s", input_path);
+        errx(EXIT_FAILURE, "Cannot open directory: %s", input_path);
       }
       
       while ((entry = readdir(dir)) != NULL) {
@@ -248,23 +247,23 @@ static hsize_t get_signal_length(hid_t signal_dataset_id) {
 
 // Read metadata from single-read Fast5 format
 static fast5_metadata_t* read_single_read_metadata(hid_t file_id, const char *filename, size_t *count) {
-    *count = 0;
-    
-    // Suppress HDF5 error messages temporarily
-    H5E_auto2_t old_func;
-    void *old_client_data;
-    H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
-    H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-    
-    // Check if /Raw/Reads group exists
-    htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
-    
-    // Restore HDF5 error reporting
-    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
-    
-    if (exists <= 0) return NULL;
-    
-    hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
+  *count = 0;
+  
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  // Check if /Raw/Reads group exists
+  htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (exists <= 0) return NULL;
+  
+  hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
   if (reads_group_id < 0) return NULL;
   
   // Get number of reads in the group
@@ -347,7 +346,7 @@ static fast5_metadata_t* read_multi_read_metadata(hid_t file_id, const char *fil
     if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) < 0) continue;
     
     if (strncmp(obj_name, "read_", 5) == 0) {
-        read_count++;
+      read_count++;
     }
   }
   
@@ -369,8 +368,8 @@ static fast5_metadata_t* read_multi_read_metadata(hid_t file_id, const char *fil
     // Open Raw subgroup
     hid_t raw_group_id = H5Gopen2(read_group_id, "Raw", H5P_DEFAULT);
     if (raw_group_id < 0) {
-        H5Gclose(read_group_id);
-        continue;
+      H5Gclose(read_group_id);
+      continue;
     }
     
     // Initialize metadata
@@ -410,8 +409,18 @@ fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_cou
   
   *metadata_count = 0;
   
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
   // Open the Fast5 file
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
   if (file_id < 0) {
     warnx("Failed to open Fast5 file: %s", filename);
     return NULL;
@@ -450,30 +459,30 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
 
 // Extract signal data from single-read Fast5 format
 static float* read_single_read_signal(hid_t file_id, const char *read_id, size_t *signal_length) {
-    *signal_length = 0;
-    
-    // Suppress HDF5 error messages temporarily
-    H5E_auto2_t old_func;
-    void *old_client_data;
-    H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
-    H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-    
-    // Check if /Raw/Reads group exists
-    htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
-    
-    // Restore HDF5 error reporting
-    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
-    
-    if (exists <= 0) return NULL;
-    
-    hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
+  *signal_length = 0;
+  
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  // Check if /Raw/Reads group exists
+  htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (exists <= 0) return NULL;
+  
+  hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
   if (reads_group_id < 0) return NULL;
   
   // Get number of reads in the group
   hsize_t num_objs;
   if (H5Gget_num_objs(reads_group_id, &num_objs) < 0) {
-      H5Gclose(reads_group_id);
-      return NULL;
+    H5Gclose(reads_group_id);
+    return NULL;
   }
   
   float *signal = NULL;
@@ -491,13 +500,13 @@ static float* read_single_read_signal(hid_t file_id, const char *read_id, size_t
     
     // Check if this is the read we want (if read_id is specified)
     if (read_id) {
-        char *current_read_id = read_string_attribute(read_group_id, "read_id");
-        if (!current_read_id || strcmp(current_read_id, read_id) != 0) {
-            free(current_read_id);
-            H5Gclose(read_group_id);
-            continue;
-        }
+      char *current_read_id = read_string_attribute(read_group_id, "read_id");
+      if (!current_read_id || strcmp(current_read_id, read_id) != 0) {
         free(current_read_id);
+        H5Gclose(read_group_id);
+        continue;
+      }
+      free(current_read_id);
     }
     
     // Open Signal dataset
@@ -609,8 +618,18 @@ float* read_fast5_signal(const char *filename, const char *read_id, size_t *sign
   
   *signal_length = 0;
   
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
   // Open the Fast5 file
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
   if (file_id < 0) {
     warnx("Failed to open Fast5 file: %s", filename);
     return NULL;
@@ -635,6 +654,6 @@ float* read_fast5_signal(const char *filename, const char *read_id, size_t *sign
 // Free Fast5 signal data
 void free_fast5_signal(float *signal) {
   if (signal) {
-      free(signal);
+    free(signal);
   }
 }
