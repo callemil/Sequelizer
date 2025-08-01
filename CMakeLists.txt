@@ -4,19 +4,28 @@ project(Sequelizer VERSION 0.1.0)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_BUILD_TYPE Release)
 
+# HDF5 dependency for Fast5 file I/O
+set(HDF5_ROOT "/opt/homebrew/opt/hdf5")
+if (HDF5_ROOT)
+    include_directories("${HDF5_ROOT}/include")
+    link_directories("${HDF5_ROOT}/lib")
+    set(CMAKE_REQUIRED_INCLUDES ${HDF5_ROOT}/include)
+endif()
+
 # Source files
 set(SEQUELIZER_SOURCES
     src/sequelizer_subcommands.c
+    src/core/fast5_io.c
 )
 
 # Sequelizer static library
 add_library(sequelizer_static STATIC ${SEQUELIZER_SOURCES})
-target_include_directories(sequelizer_static PRIVATE include)
+target_include_directories(sequelizer_static PRIVATE include src/core)
 
 # Sequelizer executable
 add_executable(sequelizer src/sequelizer.c)
-target_include_directories(sequelizer PRIVATE include)
-target_link_libraries(sequelizer sequelizer_static m)  # Link static lib + math lib
+target_include_directories(sequelizer PRIVATE include src/core)
+target_link_libraries(sequelizer sequelizer_static m hdf5)
 
 # Install
 install(TARGETS sequelizer RUNTIME DESTINATION bin)
