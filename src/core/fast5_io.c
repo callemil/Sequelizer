@@ -1,6 +1,7 @@
 // **********************************************************************
 // fast5_io.c - Fast5 File I/O Operations for Sequelizer
 // **********************************************************************
+// S Magierowski Jul 31 2025
 // Migrated from ciren Fast5 I/O operations including:
 // - Fast5 file discovery and pattern matching  
 // - Fast5 metadata extraction (single-read and multi-read formats)
@@ -23,9 +24,9 @@
 
 // Pattern matching for fast5 extension 
 bool is_fast5_file(const char *filename) {
-    if (!filename) return false;
-    size_t len = strlen(filename);
-    return len >= 6 && strcmp(filename + len - 6, ".fast5") == 0;
+  if (!filename) return false;
+  size_t len = strlen(filename);
+  return len >= 6 && strcmp(filename + len - 6, ".fast5") == 0;
 }
 
 // Recursive directory traversal
@@ -408,14 +409,13 @@ fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_cou
     
     fast5_metadata_t *metadata = NULL;
     
-    // Try multi-read format first (check for file_type attribute)
-    hid_t attr_id = H5Aopen(file_id, "file_type", H5P_DEFAULT);
-    if (attr_id >= 0) {
-        // It's likely a multi-read file
-        H5Aclose(attr_id);
+    // Check if file_type attribute exists (without generating errors)
+    htri_t attr_exists = H5Aexists(file_id, "file_type");
+    if (attr_exists > 0) {
+        // file_type attribute exists - likely a multi-read file
         metadata = read_multi_read_metadata(file_id, filename, metadata_count);
     } else {
-        // Try single-read format
+        // No file_type attribute - try single-read format
         metadata = read_single_read_metadata(file_id, filename, metadata_count);
     }
     
@@ -598,14 +598,13 @@ float* read_fast5_signal(const char *filename, const char *read_id, size_t *sign
     
     float *signal = NULL;
     
-    // Try multi-read format first (check for file_type attribute)
-    hid_t attr_id = H5Aopen(file_id, "file_type", H5P_DEFAULT);
-    if (attr_id >= 0) {
-        // It's likely a multi-read file
-        H5Aclose(attr_id);
+    // Check if file_type attribute exists (without generating errors)
+    htri_t attr_exists = H5Aexists(file_id, "file_type");
+    if (attr_exists > 0) {
+        // file_type attribute exists - likely a multi-read file
         signal = read_multi_read_signal(file_id, read_id, signal_length);
     } else {
-        // Try single-read format
+        // No file_type attribute - try single-read format
         signal = read_single_read_signal(file_id, read_id, signal_length);
     }
     
@@ -615,7 +614,7 @@ float* read_fast5_signal(const char *filename, const char *read_id, size_t *sign
 
 // Free Fast5 signal data
 void free_fast5_signal(float *signal) {
-    if (signal) {
-        free(signal);
-    }
+  if (signal) {
+      free(signal);
+  }
 }
