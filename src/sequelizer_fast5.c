@@ -12,7 +12,7 @@
 #include "sequelizer_fast5.h"
 #include "core/fast5_io.h"
 #include <string.h>
-#include <sys/stat.h>
+#include <sys/stat.h> // retrieve files & directory status information
 #include <stdint.h>
 
 // Helper function to display file information
