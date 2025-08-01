@@ -7,6 +7,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include "sequelizer_fast5.h"
 
 enum sequelizer_mode {SEQUELIZER_MODE_HELP=0,
                       SEQUELIZER_MODE_SEQGEN,
