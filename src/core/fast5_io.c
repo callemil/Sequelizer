@@ -248,13 +248,23 @@ static hsize_t get_signal_length(hid_t signal_dataset_id) {
 
 // Read metadata from single-read Fast5 format
 static fast5_metadata_t* read_single_read_metadata(hid_t file_id, const char *filename, size_t *count) {
-  *count = 0;
-  
-  // Check if /Raw/Reads group exists
-  htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
-  if (exists <= 0) return NULL;
-  
-  hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
+    *count = 0;
+    
+    // Suppress HDF5 error messages temporarily
+    H5E_auto2_t old_func;
+    void *old_client_data;
+    H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+    H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+    
+    // Check if /Raw/Reads group exists
+    htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+    
+    // Restore HDF5 error reporting
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    
+    if (exists <= 0) return NULL;
+    
+    hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
   if (reads_group_id < 0) return NULL;
   
   // Get number of reads in the group
@@ -440,13 +450,23 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
 
 // Extract signal data from single-read Fast5 format
 static float* read_single_read_signal(hid_t file_id, const char *read_id, size_t *signal_length) {
-  *signal_length = 0;
-  
-  // Check if /Raw/Reads group exists
-  htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
-  if (exists <= 0) return NULL;
-  
-  hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
+    *signal_length = 0;
+    
+    // Suppress HDF5 error messages temporarily
+    H5E_auto2_t old_func;
+    void *old_client_data;
+    H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+    H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+    
+    // Check if /Raw/Reads group exists
+    htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+    
+    // Restore HDF5 error reporting
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    
+    if (exists <= 0) return NULL;
+    
+    hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
   if (reads_group_id < 0) return NULL;
   
   // Get number of reads in the group
