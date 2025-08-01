@@ -156,9 +156,16 @@ static void display_fast5_info(const char *filename, bool verbose) {
   printf("  Range: %u - %u samples\n", min_signal_length, max_signal_length);
   
   if (verbose) {
-    printf("  Total duration: %.1f seconds\n", total_duration);
-    double avg_duration = total_duration / metadata_count;
-    printf("  Average duration: %.1f seconds\n", avg_duration);
+    double total_time_seconds = 0.0;
+    for (size_t i = 0; i < metadata_count; i++) {
+      if (metadata[i].sample_rate > 0) {
+        total_time_seconds += metadata[i].signal_length / metadata[i].sample_rate;
+      }
+    }
+    double avg_time_seconds = total_time_seconds / metadata_count;
+    
+    printf("  Total duration: %.1f seconds\n", total_time_seconds);
+    printf("  Average duration: %.1f seconds\n", avg_time_seconds);
     
     // Show file size information
     struct stat file_stat;
@@ -171,7 +178,13 @@ static void display_fast5_info(const char *filename, bool verbose) {
       }
     }
   } else {
-    printf("  Total duration: %.1f seconds\n", total_duration);
+    double total_time_seconds = 0.0;
+    for (size_t i = 0; i < metadata_count; i++) {
+      if (metadata[i].sample_rate > 0) {
+        total_time_seconds += metadata[i].signal_length / metadata[i].sample_rate;
+      }
+    }
+    printf("  Total duration: %.1f seconds\n", total_time_seconds);
   }
   
   // Show individual read details based on verbose mode and read count
