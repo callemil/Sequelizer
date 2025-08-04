@@ -1,6 +1,8 @@
 // **********************************************************************
-// fast5_utils.c - Shared Fast5 Utility Functions
+// core/fast5_utils.c - Shared Fast5 Utility Functions
 // **********************************************************************
+// S Magierowski Aug 3 2025
+// 
 // Basic utilities shared between ciren and sequelizer for consistent
 // file size calculations and basic summary functionality.
 //

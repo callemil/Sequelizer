@@ -1,3 +1,8 @@
+// **********************************************************************
+// core/fast5_utils.h - Shared Fast5 Utility Functions
+// **********************************************************************
+// S Magierowski Aug 3 2025
+// 
 #ifndef SEQUELIZER_FAST5_UTILS_H
 #define SEQUELIZER_FAST5_UTILS_H
 

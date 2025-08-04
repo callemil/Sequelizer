@@ -1,3 +1,8 @@
+// **********************************************************************
+// core/fast5_io.h - Fast5 File I/O Operations for Sequelizer
+// **********************************************************************
+// S Magierowski Aug 3 2025
+//
 #ifndef SEQUELIZER_FAST5_IO_H
 #define SEQUELIZER_FAST5_IO_H
 

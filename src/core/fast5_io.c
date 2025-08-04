@@ -1,6 +1,8 @@
 // **********************************************************************
-// fast5_io.c - Fast5 File I/O Operations for Sequelizer
+// core/fast5_io.c - Fast5 File I/O Operations for Sequelizer
 // **********************************************************************
+// S Magierowski Aug 3 2025
+//
 // Migrated from ciren Fast5 I/O operations including:
 // - Fast5 file discovery and pattern matching  
 // - Fast5 metadata extraction (single-read and multi-read formats)
