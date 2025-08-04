@@ -5,17 +5,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-// Fast5 metadata structure
-typedef struct {
-    char *read_id;
-    uint32_t signal_length;
-    double sample_rate;
-    uint32_t duration;
-    uint32_t read_number;
-    bool is_multi_read;
-    char *file_path;
-} fast5_metadata_t;
+#include "fast5_utils.h"
 
 // Fast5 file discovery functions
 bool is_fast5_file(const char *filename);
@@ -36,5 +26,8 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);
 void free_fast5_signal(float *signal);
+
+typedef void (*metadata_enhancer_t)(hid_t file_id, hid_t signal_dataset, fast5_metadata_t *metadata);
+fast5_metadata_t* read_fast5_metadata_with_enhancer(const char *filename, size_t *metadata_count, metadata_enhancer_t enhancer);
 
 #endif // SEQUELIZER_FAST5_IO_H

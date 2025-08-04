@@ -62,15 +62,17 @@ bool is_valid_hdf5_file(const char *filename) {
 }
 
 bool has_fast5_structure(const char *filename) {
-  // Suppress HDF5 error messages temporarily
-  H5E_auto2_t old_func;
-  void *old_client_data;
-  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  // Create thread-local error stack for thread safety
+  hid_t error_stack = H5Ecreate_stack();
+  if (error_stack >= 0) {
+    H5Eset_auto2(error_stack, NULL, NULL);
+  }
   
   hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
   if (file_id < 0) {
-    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    if (error_stack >= 0) {
+      H5Eclose_stack(error_stack);
+    }
     return false;
   }
   
@@ -106,8 +108,10 @@ bool has_fast5_structure(const char *filename) {
   
   H5Fclose(file_id);
   
-  // Restore HDF5 error reporting
-  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  // Clean up thread-local error stack
+  if (error_stack >= 0) {
+    H5Eclose_stack(error_stack);
+  }
   
   return has_structure;
 }
@@ -119,6 +123,7 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
   struct stat file_stat;
   char path[PATH_MAX];
   char **files = NULL;
+  size_t files_capacity = 0;
   *count = 0;
   
   dir = opendir(directory);
@@ -143,10 +148,14 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
       char **subdir_files = find_fast5_files_recursive(path, &subdir_count);
       
       if (subdir_files && subdir_count > 0) {
-        // Reallocate files array to accommodate new files
-        files = realloc(files, (*count + subdir_count) * sizeof(char*));
-        if (!files) {
-          errx(EXIT_FAILURE, "Memory allocation failed");
+        // Ensure capacity is sufficient for new files
+        size_t new_total = *count + subdir_count;
+        if (new_total > files_capacity) {
+          files_capacity = new_total;
+          files = realloc(files, files_capacity * sizeof(char*));
+          if (!files) {
+            errx(EXIT_FAILURE, "Memory allocation failed");
+          }
         }
         
         // Copy subdirectory files to main array
@@ -158,10 +167,12 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
       }
     } else if (S_ISREG(file_stat.st_mode) && is_fast5_file(entry->d_name)) {
       // Add Fast5 file to list
-      size_t new_size = (*count + 1) * sizeof(char*);
-      files = realloc(files, new_size);
-      if (!files) {
-        errx(EXIT_FAILURE, "Memory allocation failed");
+      if (*count >= files_capacity) {
+        files_capacity = files_capacity == 0 ? 16 : files_capacity * 2;
+        files = realloc(files, files_capacity * sizeof(char*));
+        if (!files) {
+          errx(EXIT_FAILURE, "Memory allocation failed");
+        }
       }
       
       files[*count] = strdup(path);
@@ -180,11 +191,6 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
 char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
   struct stat path_stat;
   *count = 0;
-  
-  if (!input_path) {
-    warnx("Input path is NULL");
-    return NULL;
-  }
   
   // Check if input path exists
   if (stat(input_path, &path_stat) != 0) {
@@ -216,6 +222,7 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
       DIR *dir;
       struct dirent *entry;
       char **files = NULL;
+      size_t files_capacity = 0;
       
       dir = opendir(input_path);
       if (!dir) {
@@ -226,10 +233,12 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
         if (entry->d_name[0] == '.') continue; // Skip hidden files
         
         if (is_fast5_file(entry->d_name)) {
-          size_t new_size = (*count + 1) * sizeof(char*);
-          files = realloc(files, new_size);
-          if (!files) {
-            errx(EXIT_FAILURE, "Memory allocation failed");
+          if (*count >= files_capacity) {
+            files_capacity = files_capacity == 0 ? 16 : files_capacity * 2;
+            files = realloc(files, files_capacity * sizeof(char*));
+            if (!files) {
+              errx(EXIT_FAILURE, "Memory allocation failed");
+            }
           }
           
           char path[PATH_MAX];
@@ -392,6 +401,8 @@ static fast5_metadata_t* read_single_read_metadata(hid_t file_id, const char *fi
     hid_t signal_dataset_id = H5Dopen2(read_group_id, "Signal", H5P_DEFAULT);
     if (signal_dataset_id >= 0) {
       metadata[*count].signal_length = (uint32_t)get_signal_length(signal_dataset_id);
+      // // Perform storage analysis on the Signal dataset
+      // extract_storage_analysis(signal_dataset_id, &metadata[*count]); // see: read_single_read_metadata_with_enhancer
       H5Dclose(signal_dataset_id);
     }
     
@@ -469,6 +480,8 @@ static fast5_metadata_t* read_multi_read_metadata(hid_t file_id, const char *fil
     hid_t signal_dataset_id = H5Dopen2(raw_group_id, "Signal", H5P_DEFAULT);
     if (signal_dataset_id >= 0) {
       metadata[*count].signal_length = (uint32_t)get_signal_length(signal_dataset_id);
+      // // Perform storage analysis on the Signal dataset   
+      // extract_storage_analysis(signal_dataset_id, &metadata[*count]); // see: read_multi_read_metadata_with_enhancer
       H5Dclose(signal_dataset_id);
     }
     
@@ -553,14 +566,248 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
   for (size_t i = 0; i < count; i++) {
     free(metadata[i].read_id);
     free(metadata[i].file_path);
+    // Only free if it exists (safe for both basic and enhanced)
+    free(metadata[i].compression_method);    
   }
   free(metadata);
 }
 
 // **********************************************************************
+// Fast5 Metadata Reading Functions (ENHANCED)
+// **********************************************************************
+// Enhanced single-read metadata function with enhancer support
+static fast5_metadata_t* read_single_read_metadata_with_enhancer(hid_t file_id, const char *filename, size_t *count, metadata_enhancer_t enhancer) {
+  *count = 0;
+  
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  // Check if /Raw/Reads group exists
+  htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (exists <= 0) return NULL;
+  
+  hid_t reads_group_id = H5Gopen2(file_id, "/Raw/Reads", H5P_DEFAULT);
+  if (reads_group_id < 0) return NULL;
+  
+  // Get number of reads in the group
+  hsize_t num_objs;
+  if (H5Gget_num_objs(reads_group_id, &num_objs) < 0) {
+    H5Gclose(reads_group_id);
+    return NULL;
+  }
+  
+  if (num_objs == 0) {
+    H5Gclose(reads_group_id);
+    return NULL;
+  }
+  
+  fast5_metadata_t *metadata = calloc(num_objs, sizeof(fast5_metadata_t));
+  if (!metadata) {
+    H5Gclose(reads_group_id);
+    return NULL;
+  }
+  
+  // Process each read
+  for (hsize_t i = 0; i < num_objs; i++) {
+    char read_name[256];
+    if (H5Gget_objname_by_idx(reads_group_id, i, read_name, sizeof(read_name)) < 0) continue;
+    
+    char read_path[512];
+    snprintf(read_path, sizeof(read_path), "/Raw/Reads/%s", read_name);
+    
+    hid_t read_group_id = H5Gopen2(file_id, read_path, H5P_DEFAULT);
+    if (read_group_id < 0) continue;
+    
+    // Initialize metadata
+    metadata[*count].file_path = strdup(filename);
+    metadata[*count].is_multi_read = false;
+    
+    // Read attributes
+    metadata[*count].read_id = read_string_attribute(read_group_id, "read_id");
+    read_uint32_attribute(read_group_id, "duration", &metadata[*count].duration);
+    read_uint32_attribute(read_group_id, "read_number", &metadata[*count].read_number);
+    
+    // Get signal length from Signal dataset
+    hid_t signal_dataset_id = H5Dopen2(read_group_id, "Signal", H5P_DEFAULT);
+    if (signal_dataset_id >= 0) {
+      metadata[*count].signal_length = (uint32_t)get_signal_length(signal_dataset_id);
+      
+      // *** CALL ENHANCER HERE - while signal dataset is open ***
+      if (enhancer) {
+        enhancer(file_id, signal_dataset_id, &metadata[*count]);
+      }
+      
+      H5Dclose(signal_dataset_id);
+    }
+    
+    H5Gclose(read_group_id);
+    (*count)++;
+  }
+  
+  // Get sample rate from channel_id group
+  hid_t channel_group_id = H5Gopen2(file_id, "/UniqueGlobalKey/channel_id", H5P_DEFAULT);
+  if (channel_group_id >= 0) {
+    double sample_rate;
+    if (read_double_attribute(channel_group_id, "sampling_rate", &sample_rate)) {
+      for (size_t i = 0; i < *count; i++) {
+        metadata[i].sample_rate = sample_rate;
+      }
+    }
+    H5Gclose(channel_group_id);
+  }
+  
+  H5Gclose(reads_group_id);
+  return metadata;
+}
+
+// Enhanced multi-read metadata function with enhancer support
+static fast5_metadata_t* read_multi_read_metadata_with_enhancer(hid_t file_id, const char *filename, size_t *count, metadata_enhancer_t enhancer) {
+  *count = 0;
+  
+  // Get number of root-level objects
+  hsize_t num_objs;
+  if (H5Gget_num_objs(file_id, &num_objs) < 0) return NULL;
+  
+  // Count read_ groups
+  size_t read_count = 0;
+  for (hsize_t i = 0; i < num_objs; i++) {
+    char obj_name[256];
+    if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) < 0) continue;
+    
+    if (strncmp(obj_name, "read_", 5) == 0) {
+      read_count++;
+    }
+  }
+  
+  if (read_count == 0) return NULL;
+  
+  fast5_metadata_t *metadata = calloc(read_count, sizeof(fast5_metadata_t));
+  if (!metadata) return NULL;
+  
+  // Process each read_ group
+  for (hsize_t i = 0; i < num_objs; i++) {
+    char obj_name[256];
+    if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) < 0) continue;
+    
+    if (strncmp(obj_name, "read_", 5) != 0) continue;
+    
+    hid_t read_group_id = H5Gopen2(file_id, obj_name, H5P_DEFAULT);
+    if (read_group_id < 0) continue;
+    
+    // Open Raw subgroup
+    hid_t raw_group_id = H5Gopen2(read_group_id, "Raw", H5P_DEFAULT);
+    if (raw_group_id < 0) {
+      H5Gclose(read_group_id);
+      continue;
+    }
+    
+    // Initialize metadata
+    metadata[*count].file_path = strdup(filename);
+    metadata[*count].is_multi_read = true;
+    
+    // Read attributes from Raw group
+    metadata[*count].read_id = read_string_attribute(raw_group_id, "read_id");
+    read_uint32_attribute(raw_group_id, "duration", &metadata[*count].duration);
+    read_uint32_attribute(raw_group_id, "read_number", &metadata[*count].read_number);
+    
+    // Get signal length from Signal dataset
+    hid_t signal_dataset_id = H5Dopen2(raw_group_id, "Signal", H5P_DEFAULT);
+    if (signal_dataset_id >= 0) {
+      metadata[*count].signal_length = (uint32_t)get_signal_length(signal_dataset_id);
+      
+      // *** CALL ENHANCER HERE - while signal dataset is open ***
+      if (enhancer) {
+        enhancer(file_id, signal_dataset_id, &metadata[*count]);
+      }
+      
+      H5Dclose(signal_dataset_id);
+    }
+    
+    // Get sample rate from channel_id group
+    hid_t channel_group_id = H5Gopen2(read_group_id, "channel_id", H5P_DEFAULT);
+    if (channel_group_id >= 0) {
+      read_double_attribute(channel_group_id, "sampling_rate", &metadata[*count].sample_rate);
+      H5Gclose(channel_group_id);
+    }
+    
+    H5Gclose(raw_group_id);
+    H5Gclose(read_group_id);
+    (*count)++;
+  }
+  
+  return metadata;
+}
+
+// Main function to read Fast5 metadata with enhancer support
+fast5_metadata_t* read_fast5_metadata_with_enhancer(const char *filename, size_t *metadata_count, metadata_enhancer_t enhancer) {
+  if (!filename || !metadata_count) return NULL;
+  
+  *metadata_count = 0;
+  
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  // Open the Fast5 file
+  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  if (file_id < 0) {
+    warnx("Failed to open Fast5 file: %s", filename);
+    return NULL;
+  }
+  
+  fast5_metadata_t *metadata = NULL;
+  
+  // Format detection (same logic as original)
+  bool is_multi_read = false;
+  
+  // Check for file_type attribute first
+  htri_t attr_exists = H5Aexists(file_id, "file_type");
+  if (attr_exists > 0) {
+    is_multi_read = true;
+  } else {
+    // No file_type attribute - check for read_* groups at root level
+    hsize_t num_objs;
+    if (H5Gget_num_objs(file_id, &num_objs) >= 0 && num_objs > 0) {
+      // Check first few objects for read_ pattern
+      for (hsize_t i = 0; i < num_objs && i < 5; i++) {
+        char obj_name[256];
+        if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) >= 0) {
+          if (strncmp(obj_name, "read_", 5) == 0) {
+            is_multi_read = true;
+            break;
+          }
+        }
+      }
+    }
+  }
+  
+  // Call the appropriate enhanced helper function
+  if (is_multi_read) {
+    metadata = read_multi_read_metadata_with_enhancer(file_id, filename, metadata_count, enhancer);
+  } else {
+    metadata = read_single_read_metadata_with_enhancer(file_id, filename, metadata_count, enhancer);
+  }
+  
+  H5Fclose(file_id);
+  return metadata;
+}
+
+// **********************************************************************
 // Fast5 Signal Extraction Functions
 // **********************************************************************
-
 // Extract signal data from single-read Fast5 format
 static float* read_single_read_signal(hid_t file_id, const char *read_id, size_t *signal_length) {
   *signal_length = 0;
@@ -781,4 +1028,3 @@ void free_fast5_signal(float *signal) {
     free(signal);
   }
 }
-
