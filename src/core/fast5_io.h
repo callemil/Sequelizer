@@ -23,6 +23,12 @@ char** find_fast5_files_recursive(const char *directory, size_t *count);
 char** find_fast5_files(const char *input_path, bool recursive, size_t *count);
 void free_file_list(char **files, size_t count);
 
+// Enhanced file validation functions (from ciren)
+bool file_is_accessible(const char *filename);
+bool is_likely_fast5_file(const char *filename);
+bool is_valid_hdf5_file(const char *filename);
+bool has_fast5_structure(const char *filename);
+
 // Fast5 file reading functions
 fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_count);
 void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);

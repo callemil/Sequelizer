@@ -11,9 +11,11 @@
 #include "../include/sequelizer.h"
 #include "sequelizer_fast5.h"
 #include "core/fast5_io.h"
+#include "core/fast5_utils.h"
 #include <string.h>
 #include <sys/stat.h> // retrieve files & directory status information
 #include <stdint.h>
+#include <sys/time.h>
 
 // Helper function to display file information
 static void display_fast5_info(const char *filename, bool verbose) {
@@ -28,7 +30,7 @@ static void display_fast5_info(const char *filename, bool verbose) {
   }
   
   if (verbose) {
-    printf("File size: %.2f MB\n", (double)file_stat.st_size / (1024.0 * 1024.0));
+    printf("File size: %.2f MB\n", get_file_size_mb(filename));
   }
   
   // Get metadata for all reads in the file
@@ -39,7 +41,7 @@ static void display_fast5_info(const char *filename, bool verbose) {
     printf("Error: Could not read metadata from file\n");
     if (verbose) {
       printf("Debug: File exists and has size %.2f MB, but metadata extraction failed\n", 
-             (double)file_stat.st_size / (1024.0 * 1024.0));
+             get_file_size_mb(filename));
       printf("This may indicate an incompatible Fast5 format or corrupted file\n");
     }
     printf("\n");
@@ -91,11 +93,11 @@ static void display_fast5_info(const char *filename, bool verbose) {
     printf("  Average duration: %.1f seconds\n", avg_time_seconds);
     
     // Show file size information
-    struct stat file_stat;
-    if (stat(filename, &file_stat) == 0) {
-      double file_size_mb = (double)file_stat.st_size / (1024.0 * 1024.0);
-      printf("  File size: %.2f MB\n", file_size_mb);
-      if (total_signal_length > 0) {
+    double file_size_mb = get_file_size_mb(filename);
+    printf("  File size: %.2f MB\n", file_size_mb);
+    if (total_signal_length > 0) {
+      struct stat file_stat;
+      if (stat(filename, &file_stat) == 0) {
         double compression_ratio = (double)file_stat.st_size / (total_signal_length * sizeof(float));
         printf("  Compression ratio: %.2fx\n", compression_ratio);
       }
@@ -152,6 +154,10 @@ static void process_directory(const char *directory, bool recursive, bool verbos
   printf("Directory: %s\n", directory);
   printf("Recursive: %s\n\n", recursive ? "yes" : "no");
   
+  // Start timing for summary
+  struct timeval start_time, end_time;
+  gettimeofday(&start_time, NULL);
+  
   // Find all Fast5 files
   size_t files_count = 0;
   char **fast5_files = find_fast5_files(directory, recursive, &files_count);
@@ -163,11 +169,56 @@ static void process_directory(const char *directory, bool recursive, bool verbos
   
   printf("Found %zu Fast5 files:\n\n", files_count);
   
-  // Process each file
+  // Prepare data structures for summary calculation
+  fast5_metadata_t **results = calloc(files_count, sizeof(fast5_metadata_t*));
+  int *results_count = calloc(files_count, sizeof(int));
+  
+  if (!results || !results_count) {
+    printf("Error: Memory allocation failed\n");
+    free_file_list(fast5_files, files_count);
+    return;
+  }
+  
+  // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
+    // Read metadata for summary calculation
+    size_t metadata_count = 0;
+    fast5_metadata_t *metadata = read_fast5_metadata(fast5_files[i], &metadata_count);
+    
+    if (metadata && metadata_count > 0) {
+      results[i] = metadata;
+      results_count[i] = (int)metadata_count;
+    } else {
+      results[i] = NULL;
+      results_count[i] = 0;
+    }
+    
+    // Display individual file info
     display_fast5_info(fast5_files[i], verbose);
   }
   
+  // Calculate processing time
+  gettimeofday(&end_time, NULL);
+  double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
+                             ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
+  
+  // Generate and display summary
+  basic_fast5_summary_t *summary = calculate_basic_summary((void**)results, fast5_files, 
+                                                          results_count, (int)files_count, 
+                                                          processing_time_ms);
+  if (summary) {
+    print_basic_summary_human(summary);
+    free_basic_summary(summary);
+  }
+  
+  // Cleanup
+  for (size_t i = 0; i < files_count; i++) {
+    if (results[i] && results_count[i] > 0) {
+      free_fast5_metadata(results[i], results_count[i]);
+    }
+  }
+  free(results);
+  free(results_count);
   free_file_list(fast5_files, files_count);
 }
 
@@ -183,7 +234,7 @@ static void debug_fast5_file(const char *filename) {
     return;
   }
   
-  printf("File size: %.2f MB\n", (double)file_stat.st_size / (1024.0 * 1024.0));
+  printf("File size: %.2f MB\n", get_file_size_mb(filename));
   
   // Try to open with HDF5
   printf("Attempting HDF5 open...\n");

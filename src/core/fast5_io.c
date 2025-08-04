@@ -18,7 +18,7 @@
 #include <err.h>
 
 // **********************************************************************
-// Fast5 File Discovery Functions
+// Fast5 File Discovery and Validation Functions
 // **********************************************************************
 
 // Pattern matching for fast5 extension 
@@ -26,6 +26,90 @@ bool is_fast5_file(const char *filename) {
   if (!filename) return false;
   size_t len = strlen(filename);
   return len >= 6 && strcmp(filename + len - 6, ".fast5") == 0;
+}
+
+// Enhanced file validation functions (ported from ciren)
+bool file_is_accessible(const char *filename) {
+  struct stat file_stat;
+  return (stat(filename, &file_stat) == 0 && S_ISREG(file_stat.st_mode));
+}
+
+bool is_likely_fast5_file(const char *filename) {
+  if (!filename) return false;
+  size_t len = strlen(filename);
+  return len >= 6 && strcmp(filename + len - 6, ".fast5") == 0;
+}
+
+bool is_valid_hdf5_file(const char *filename) {
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  // Simple HDF5 file validation
+  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  bool is_valid = (file_id >= 0);
+  
+  if (is_valid) {
+    H5Fclose(file_id);
+  }
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  return is_valid;
+}
+
+bool has_fast5_structure(const char *filename) {
+  // Suppress HDF5 error messages temporarily
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+  
+  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) {
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    return false;
+  }
+  
+  bool has_structure = false;
+  
+  // Check for multi-read format indicators
+  htri_t attr_exists = H5Aexists(file_id, "file_type");
+  if (attr_exists > 0) {
+    has_structure = true;
+  } else {
+    // Check for read_ groups at root level
+    hsize_t num_objs;
+    if (H5Gget_num_objs(file_id, &num_objs) >= 0 && num_objs > 0) {
+      for (hsize_t i = 0; i < num_objs && i < 5; i++) {
+        char obj_name[256];
+        if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) >= 0) {
+          if (strncmp(obj_name, "read_", 5) == 0) {
+            has_structure = true;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Check for single-read format
+    if (!has_structure) {
+      htri_t exists = H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT);
+      if (exists > 0) {
+        has_structure = true;
+      }
+    }
+  }
+  
+  H5Fclose(file_id);
+  
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+  
+  return has_structure;
 }
 
 // Recursive directory traversal
@@ -697,3 +781,4 @@ void free_fast5_signal(float *signal) {
     free(signal);
   }
 }
+
