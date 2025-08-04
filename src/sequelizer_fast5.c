@@ -16,6 +16,8 @@
 #include <sys/stat.h>
 #include <stdint.h>
 #include <sys/time.h>
+#include <argp.h>
+#include <err.h>
 
 // Helper function to display file information
 static void display_fast5_info(const char *filename, bool verbose) {
@@ -297,107 +299,119 @@ static void debug_fast5_file(const char *filename) {
 }
 
 // **********************************************************************
-// Utility Functions
+// Argument Parsing
 // **********************************************************************
 
-static void print_help(void) {
-  printf("Sequelizer fast5 - Fast5 File Operations\n");
-  printf("========================================\n\n");
-  printf("Tools for working with Fast5 nanopore data files.\n\n");
-  printf("Usage: sequelizer fast5 [command] [options] <input>\n\n");
-  printf("Commands:\n");
-  printf("  info      Display Fast5 file information (default)\n");
-  printf("  debug     Show detailed HDF5 structure for debugging\n\n");
-  printf("Options:\n");
-  printf("  --recursive, -r   Search directories recursively\n");
-  printf("  --verbose, -v     Show detailed information\n");
-  printf("  --help, -h        Show this help\n\n");
-  printf("Examples:\n");
-  printf("  sequelizer fast5 data.fast5\n");
-  printf("  sequelizer fast5 info --verbose data.fast5\n");
-  printf("  sequelizer fast5 /path/to/fast5_files/ --recursive\n");
+const char *argp_program_version = "sequelizer fast5 1.0";
+const char *argp_program_bug_address = "magierowski@gmail.com";
+
+static char doc[] = "sequelizer fast5 -- Fast5 file analysis and debugging\v"
+"EXAMPLES:\n"
+"  sequelizer fast5 data.fast5\n"
+"  sequelizer fast5 /path/to/fast5_files/ --recursive --verbose\n"
+"  sequelizer fast5 debug problematic.fast5";
+
+static char args_doc[] = "INPUT";
+
+static struct argp_option options[] = {
+  {"recursive",     'r', 0,         0, "Search directories recursively"},
+  {"verbose",       'v', 0,         0, "Show detailed information"},
+  {"debug",         'd', 0,         0, "Show detailed HDF5 structure for debugging"},
+  {0}
+};
+
+struct arguments {
+  char *input_path;
+  bool recursive;
+  bool verbose;
+  bool debug_mode;
+};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  struct arguments *arguments = state->input;
+  
+  switch (key) {
+    case 'r':
+      arguments->recursive = true;
+      break;
+    case 'v':
+      arguments->verbose = true;
+      break;
+    case 'd':
+      arguments->debug_mode = true;
+      break;
+    case ARGP_KEY_ARG:
+      if (state->arg_num >= 1) {
+        argp_usage(state);
+      }
+      arguments->input_path = arg;
+      break;
+    case ARGP_KEY_END:
+      if (state->arg_num < 1) {
+        argp_usage(state);
+      }
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+  }
+  return 0;
 }
 
+static struct argp argp = {options, parse_opt, args_doc, doc};
+
 // **********************************************************************
-// Main Function - Restructured with STEP-based Organization
+// Main Function 
 // **********************************************************************
 
 int main_fast5(int argc, char *argv[]) {
+
   // ========================================================================
   // STEP 1: PARSE COMMAND LINE ARGUMENTS AND SET DEFAULTS
   // ========================================================================
-  // Handle help for fast5 subcommand
-  if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
-    print_help();
-    return EXIT_SUCCESS;
-  }
+  struct arguments arguments;
   
-  // Set sensible defaults for all configuration options
-  bool recursive = false;
-  bool verbose = false;
-  const char *input_path = NULL;
-  const char *command = "info"; // Default command
+  // Set sensible defaults
+  arguments.input_path = NULL;
+  arguments.recursive = false;
+  arguments.verbose = false;
+  arguments.debug_mode = false;
   
-  // Simple argument parsing (maintains compatibility with existing usage)
-  for (int i = 1; i < argc; i++) {
-    if (strcmp(argv[i], "--recursive") == 0 || strcmp(argv[i], "-r") == 0) {
-      recursive = true;
-    } else if (strcmp(argv[i], "--verbose") == 0 || strcmp(argv[i], "-v") == 0) {
-      verbose = true;
-    } else if (strcmp(argv[i], "info") == 0) {
-      command = "info";
-    } else if (strcmp(argv[i], "debug") == 0) {
-      command = "debug";
-    } else if (argv[i][0] != '-') {
-      // First non-option argument is the input path
-      if (!input_path) {
-        input_path = argv[i];
-      }
-    }
-  }
-  
-  if (!input_path) {
-    printf("Error: No input file or directory specified.\n");
-    printf("Use 'sequelizer fast5 --help' for usage information.\n");
-    return EXIT_FAILURE;
-  }
+  // Parse arguments using argp
+  argp_parse(&argp, argc, argv, 0, 0, &arguments);
   
   // ========================================================================
   // STEP 2: VALIDATE INPUT PATH AND DETERMINE FILE TYPE
   // ========================================================================
   // Check if input path exists and is accessible
   struct stat path_stat;
-  if (stat(input_path, &path_stat) != 0) {
-    printf("Error: Input path does not exist: %s\n", input_path);
-    return EXIT_FAILURE;
+  if (stat(arguments.input_path, &path_stat) != 0) {
+    errx(EXIT_FAILURE, "Input path does not exist: %s", arguments.input_path);
   }
   
   // ========================================================================
-  // STEP 3: PROCESS BASED ON INPUT TYPE AND COMMAND
+  // STEP 3: PROCESS BASED ON INPUT TYPE AND DEBUG MODE
   // ========================================================================
   if (S_ISREG(path_stat.st_mode)) {
     // STEP 3A: SINGLE FILE PROCESSING
-    if (!is_fast5_file(input_path)) {
-      printf("Error: Input file is not a Fast5 file: %s\n", input_path);
-      return EXIT_FAILURE;
+    if (!is_fast5_file(arguments.input_path)) {
+      errx(EXIT_FAILURE, "Input file is not a Fast5 file: %s", arguments.input_path);
     }
     
-    if (strcmp(command, "debug") == 0) {
-      debug_fast5_file(input_path);
+    if (arguments.debug_mode) {
+      debug_fast5_file(arguments.input_path);
     } else {
-      display_fast5_info(input_path, verbose);
+      display_fast5_info(arguments.input_path, arguments.verbose);
     }
     
   } else if (S_ISDIR(path_stat.st_mode)) {
     // STEP 3B: DIRECTORY PROCESSING
-    if (strcmp(command, "debug") == 0) {
+    if (arguments.debug_mode) {
       // Debug mode processes only first file found
       size_t files_count = 0;
-      char **fast5_files = find_fast5_files(input_path, recursive, &files_count);
+      char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
       
       if (!fast5_files || files_count == 0) {
-        printf("No Fast5 files found in directory.\n");
-        return EXIT_FAILURE;
+        errx(EXIT_FAILURE, "No Fast5 files found in directory");
       }
       
       printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
@@ -406,12 +420,11 @@ int main_fast5(int argc, char *argv[]) {
       free_file_list(fast5_files, files_count);
     } else {
       // Standard directory processing with comprehensive analysis
-      process_directory(input_path, recursive, verbose);
+      process_directory(arguments.input_path, arguments.recursive, arguments.verbose);
     }
     
   } else {
-    printf("Error: Input path is neither a file nor a directory: %s\n", input_path);
-    return EXIT_FAILURE;
+    errx(EXIT_FAILURE, "Input path is neither a file nor a directory: %s", arguments.input_path);
   }
   
   // ========================================================================
