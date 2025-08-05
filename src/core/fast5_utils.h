@@ -45,6 +45,9 @@ typedef struct {
     double logical_bits_per_sample; // logical_bytes * 8 / signal_length
     double compression_ratio;      // If compression detected
     bool storage_analysis_available; // Whether storage analysis was performed
+    // Pore level analysis fields  
+    double median_before;              // Estimated median current level before read
+    bool pore_level_available;         // Whether pore level analysis was performed
 } fast5_metadata_t;
 
 // **********************************************************************
