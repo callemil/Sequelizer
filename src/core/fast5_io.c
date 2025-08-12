@@ -569,7 +569,8 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
     free(metadata[i].read_id);
     free(metadata[i].file_path);
     // Only free if it exists (safe for both basic and enhanced)
-    free(metadata[i].compression_method);    
+    free(metadata[i].compression_method);
+    free(metadata[i].run_id);
   }
   free(metadata);
 }

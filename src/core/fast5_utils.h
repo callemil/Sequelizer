@@ -48,6 +48,10 @@ typedef struct {
     // Pore level analysis fields  
     double median_before;              // Estimated median current level before read
     bool pore_level_available;         // Whether pore level analysis was performed
+    // Temporal analysis fields  
+    uint64_t start_time;        // Raw start time in samples
+    char *run_id;              // Experiment identifier  
+    bool temporal_data_available; // Whether temporal analysis was performed
 } fast5_metadata_t;
 
 // **********************************************************************

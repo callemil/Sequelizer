@@ -185,7 +185,8 @@ static void process_directory(const char *directory, bool recursive, bool verbos
   for (size_t i = 0; i < files_count; i++) {
     // Read metadata for summary calculation
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata(fast5_files[i], &metadata_count);
+    // fast5_metadata_t *metadata = read_fast5_metadata(fast5_files[i], &metadata_count);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
     
     if (metadata && metadata_count > 0) {
       results[i] = metadata;
