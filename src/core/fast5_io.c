@@ -571,6 +571,7 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
     // Only free if it exists (safe for both basic and enhanced)
     free(metadata[i].compression_method);
     free(metadata[i].run_id);
+    free(metadata[i].channel_number);
   }
   free(metadata);
 }

@@ -50,7 +50,8 @@ typedef struct {
     bool pore_level_available;         // Whether pore level analysis was performed
     // Temporal analysis fields  
     uint64_t start_time;        // Raw start time in samples
-    char *run_id;              // Experiment identifier  
+    char *run_id;              // Experiment identifier
+    char *channel_number;       // Sensor/channel identifier ("1", "142", etc.)
     bool temporal_data_available; // Whether temporal analysis was performed
 } fast5_metadata_t;
 
