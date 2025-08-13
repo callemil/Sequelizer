@@ -168,94 +168,6 @@ static void display_fast5_info(const char *filename, bool verbose) {
   free_fast5_metadata(metadata, metadata_count);
 }
 
-// Helper function to process directory
-static void process_directory(const char *directory, bool recursive, bool verbose) {
-  printf("Fast5 Directory Analysis\n");
-  printf("========================\n");
-  printf("Directory: %s\n", directory);
-  printf("Recursive: %s\n\n", recursive ? "yes" : "no");
-  
-  // Start timing for summary
-  struct timeval start_time, end_time;
-  gettimeofday(&start_time, NULL);
-  
-  // Find all Fast5 files
-  size_t files_count = 0;
-  char **fast5_files = find_fast5_files(directory, recursive, &files_count);
-  
-  if (!fast5_files || files_count == 0) {
-    printf("No Fast5 files found in directory.\n");
-    return;
-  }
-  
-  printf("Found %zu Fast5 files:\n\n", files_count);
-  
-  // Prepare data structures for summary calculation
-  fast5_metadata_t **results = calloc(files_count, sizeof(fast5_metadata_t*));
-  int *results_count = calloc(files_count, sizeof(int));
-  
-  if (!results || !results_count) {
-    printf("Error: Memory allocation failed\n");
-    free_file_list(fast5_files, files_count);
-    return;
-  }
-  
-  // Show initial progress bar
-  display_progress(0, (int)files_count, verbose);
-  
-  // Process each file and collect results
-  for (size_t i = 0; i < files_count; i++) {
-    // Read metadata for summary calculation
-    size_t metadata_count = 0;
-    // fast5_metadata_t *metadata = read_fast5_metadata(fast5_files[i], &metadata_count);
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
-    
-    if (metadata && metadata_count > 0) {
-      results[i] = metadata;
-      results_count[i] = (int)metadata_count;
-    } else {
-      results[i] = NULL;
-      results_count[i] = 0;
-    }
-    
-    // Update progress bar
-    display_progress((int)(i + 1), (int)files_count, verbose);
-  }
-  
-  // Complete progress bar and move to next line
-  printf("\n\n");
-  
-  // Now display individual file info if verbose
-  if (verbose) {
-    for (size_t i = 0; i < files_count; i++) {
-      display_fast5_info(fast5_files[i], verbose);
-    }
-  }
-  
-  // Calculate processing time
-  gettimeofday(&end_time, NULL);
-  double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
-                             ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
-  
-  // Generate and display summary
-  basic_fast5_summary_t *summary = calculate_basic_summary((void**)results, fast5_files, 
-                                                          results_count, (int)files_count, 
-                                                          processing_time_ms);
-  if (summary) {
-    print_basic_summary_human(summary);
-    free_basic_summary(summary);
-  }
-  
-  // Cleanup
-  for (size_t i = 0; i < files_count; i++) {
-    if (results[i] && results_count[i] > 0) {
-      free_fast5_metadata(results[i], results_count[i]);
-    }
-  }
-  free(results);
-  free(results_count);
-  free_file_list(fast5_files, files_count);
-}
 
 // Helper function to debug HDF5 file structure
 static void debug_fast5_file(const char *filename) {
@@ -393,6 +305,69 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
 static struct argp argp = {options, parse_opt, args_doc, doc};
 
 // **********************************************************************
+// Helper Functions for Modular Architecture
+// **********************************************************************
+
+// Helper function to validate input path and determine file type
+static void validate_input_path(const char *input_path, struct stat *path_stat) {
+  if (stat(input_path, path_stat) != 0) {
+    errx(EXIT_FAILURE, "Input path does not exist: %s", input_path);
+  }
+}
+
+// Helper function to initialize data structures for file processing
+static void initialize_data_structures(size_t file_count, fast5_metadata_t ***results, int **results_count) {
+  *results = calloc(file_count, sizeof(fast5_metadata_t*));
+  *results_count = calloc(file_count, sizeof(int));
+  
+  if (!*results || !*results_count) {
+    errx(EXIT_FAILURE, "Memory allocation failed for data structures");
+  }
+}
+
+// Helper function to process files sequentially with progress tracking
+static void process_files_sequentially(char **fast5_files, size_t files_count, 
+                                      fast5_metadata_t **results, int *results_count,
+                                      bool verbose) {
+  // Show initial progress bar
+  display_progress(0, (int)files_count, verbose);
+  
+  // Process each file and collect results
+  for (size_t i = 0; i < files_count; i++) {
+    // Read metadata for summary calculation
+    size_t metadata_count = 0;
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
+    
+    if (metadata && metadata_count > 0) {
+      results[i] = metadata;
+      results_count[i] = (int)metadata_count;
+    } else {
+      results[i] = NULL;
+      results_count[i] = 0;
+    }
+    
+    // Update progress bar
+    display_progress((int)(i + 1), (int)files_count, verbose);
+  }
+  
+  // Complete progress bar and move to next line
+  printf("\n\n");
+}
+
+// Helper function to create and display analysis summary
+static void create_analysis_summary(fast5_metadata_t **results, int *results_count,
+                                   char **fast5_files, size_t files_count,
+                                   double processing_time_ms) {
+  basic_fast5_summary_t *summary = calculate_basic_summary((void**)results, fast5_files, 
+                                                          results_count, (int)files_count, 
+                                                          processing_time_ms);
+  if (summary) {
+    print_basic_summary_human(summary);
+    free_basic_summary(summary);
+  }
+}
+
+// **********************************************************************
 // Main Function 
 // **********************************************************************
 
@@ -403,13 +378,13 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   struct arguments arguments;
   
-  // Set sensible defaults
+  // Set sensible defaults for all configuration options
   arguments.input_path = NULL;
   arguments.recursive = false;
   arguments.verbose = false;
   arguments.debug_mode = false;
   
-  // Parse arguments using argp
+  // Parse command line arguments using argp framework
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
   
   // ========================================================================
@@ -417,12 +392,10 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   // Check if input path exists and is accessible
   struct stat path_stat;
-  if (stat(arguments.input_path, &path_stat) != 0) {
-    errx(EXIT_FAILURE, "Input path does not exist: %s", arguments.input_path);
-  }
+  validate_input_path(arguments.input_path, &path_stat);
   
   // ========================================================================
-  // STEP 3: PROCESS BASED ON INPUT TYPE AND DEBUG MODE
+  // STEP 3: HANDLE SPECIAL CASES - DEBUG MODE AND SINGLE FILES
   // ========================================================================
   if (S_ISREG(path_stat.st_mode)) {
     // STEP 3A: SINGLE FILE PROCESSING
@@ -435,33 +408,102 @@ int main_fast5(int argc, char *argv[]) {
     } else {
       display_fast5_info(arguments.input_path, arguments.verbose);
     }
+    return EXIT_SUCCESS;
     
-  } else if (S_ISDIR(path_stat.st_mode)) {
-    // STEP 3B: DIRECTORY PROCESSING
-    if (arguments.debug_mode) {
-      // Debug mode processes only first file found
-      size_t files_count = 0;
-      char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
-      
-      if (!fast5_files || files_count == 0) {
-        errx(EXIT_FAILURE, "No Fast5 files found in directory");
-      }
-      
-      printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
-      debug_fast5_file(fast5_files[0]);
-      
-      free_file_list(fast5_files, files_count);
-    } else {
-      // Standard directory processing with comprehensive analysis
-      process_directory(arguments.input_path, arguments.recursive, arguments.verbose);
+  } else if (S_ISDIR(path_stat.st_mode) && arguments.debug_mode) {
+    // STEP 3B: DEBUG MODE DIRECTORY PROCESSING (first file only)
+    size_t files_count = 0;
+    char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
+    
+    if (!fast5_files || files_count == 0) {
+      errx(EXIT_FAILURE, "No Fast5 files found in directory");
     }
     
-  } else {
+    printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
+    debug_fast5_file(fast5_files[0]);
+    
+    free_file_list(fast5_files, files_count);
+    return EXIT_SUCCESS;
+    
+  } else if (!S_ISDIR(path_stat.st_mode)) {
     errx(EXIT_FAILURE, "Input path is neither a file nor a directory: %s", arguments.input_path);
   }
   
   // ========================================================================
-  // STEP 4: SUCCESSFUL COMPLETION
+  // STEP 4: DISCOVER AND ENUMERATE FAST5 FILES
   // ========================================================================
+  printf("Fast5 Directory Analysis\n");
+  printf("========================\n");
+  printf("Directory: %s\n", arguments.input_path);
+  printf("Recursive: %s\n\n", arguments.recursive ? "yes" : "no");
+  
+  size_t files_count = 0;
+  char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
+  
+  // Handle case where no Fast5 files are found
+  if (!fast5_files || files_count == 0) {
+    printf("No Fast5 files found in directory.\n");
+    return EXIT_SUCCESS;
+  }
+  
+  printf("Found %zu Fast5 files:\n\n", files_count);
+  
+  // ========================================================================
+  // STEP 5: INITIALIZE TIMING AND DATA STRUCTURES
+  // ========================================================================
+  // Start timing for performance measurement
+  struct timeval start_time, end_time;
+  gettimeofday(&start_time, NULL);
+  
+  // Initialize shared arrays for storing results
+  fast5_metadata_t **results = NULL;
+  int *results_count = NULL;
+  initialize_data_structures(files_count, &results, &results_count);
+  
+  // ========================================================================
+  // STEP 6: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING
+  // ========================================================================
+  // Process each file and collect metadata results
+  process_files_sequentially(fast5_files, files_count, results, results_count, arguments.verbose);
+  
+  // ========================================================================
+  // STEP 7: DISPLAY INDIVIDUAL FILE INFORMATION IF REQUESTED
+  // ========================================================================
+  // Show individual file info if verbose mode enabled
+  if (arguments.verbose) {
+    for (size_t i = 0; i < files_count; i++) {
+      display_fast5_info(fast5_files[i], arguments.verbose);
+    }
+  }
+  
+  // ========================================================================
+  // STEP 8: CALCULATE PROCESSING TIME
+  // ========================================================================
+  // Calculate total processing time for summary
+  gettimeofday(&end_time, NULL);
+  double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
+                             ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
+  
+  // ========================================================================
+  // STEP 9: CREATE AND DISPLAY COMPREHENSIVE ANALYSIS SUMMARY
+  // ========================================================================
+  // Generate and display summary statistics for the entire dataset
+  create_analysis_summary(results, results_count, fast5_files, files_count, processing_time_ms);
+  
+  // ========================================================================
+  // STEP 10: CLEANUP ALL ALLOCATED RESOURCES
+  // ========================================================================
+  // Free metadata results from all successfully processed files
+  for (size_t i = 0; i < files_count; i++) {
+    if (results[i] && results_count[i] > 0) {
+      free_fast5_metadata(results[i], results_count[i]);
+    }
+  }
+  
+  // Free main data structure arrays
+  free(results);
+  free(results_count);
+  free_file_list(fast5_files, files_count);
+  
   return EXIT_SUCCESS;
 }
