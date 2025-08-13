@@ -388,12 +388,6 @@ int main_fast5(int argc, char *argv[]) {
     debug_fast5_file(fast5_files[0]);
   } else {
     // Regular directory processing
-    printf("Sequelizer Fast5 Directory Analysis\n");
-    printf("===================================\n");
-    printf("Directory: %s\n", arguments.input_path);
-    printf("Recursive: %s\n\n", arguments.recursive ? "yes" : "no");
-    printf("Found %zu Fast5 files:\n\n", files_count);
-    
     // Show individual file info if verbose mode enabled (using stored metadata)
     if (arguments.verbose) {
       for (size_t i = 0; i < files_count; i++) {
