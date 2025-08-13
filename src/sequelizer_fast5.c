@@ -19,6 +19,30 @@
 #include <argp.h>
 #include <err.h>
 
+// **********************************************************************
+// Progress Bar Functions
+// **********************************************************************
+
+static void display_progress(int completed, int total, bool verbose) {
+  if (total == 0) return;
+  
+  int percent = (completed * 100) / total;
+  int bar_width = 40;
+  int filled = (completed * bar_width) / total;
+  
+  printf("\r[");
+  for (int i = 0; i < bar_width; i++) {
+    printf(i < filled ? "█" : "░");
+  }
+  printf("] %d%% (%d/%d)", percent, completed, total);
+  
+  if (verbose) {
+    printf(" analyzing Fast5 files");
+  }
+  
+  fflush(stdout);
+}
+
 // Helper function to display file information
 static void display_fast5_info(const char *filename, bool verbose) {
   printf("Fast5 File: %s\n", filename);
@@ -176,6 +200,9 @@ static void process_directory(const char *directory, bool recursive, bool verbos
     return;
   }
   
+  // Show initial progress bar
+  display_progress(0, (int)files_count, verbose);
+  
   // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
     // Read metadata for summary calculation
@@ -191,8 +218,18 @@ static void process_directory(const char *directory, bool recursive, bool verbos
       results_count[i] = 0;
     }
     
-    // Display individual file info
-    display_fast5_info(fast5_files[i], verbose);
+    // Update progress bar
+    display_progress((int)(i + 1), (int)files_count, verbose);
+  }
+  
+  // Complete progress bar and move to next line
+  printf("\n\n");
+  
+  // Now display individual file info if verbose
+  if (verbose) {
+    for (size_t i = 0; i < files_count; i++) {
+      display_fast5_info(fast5_files[i], verbose);
+    }
   }
   
   // Calculate processing time
