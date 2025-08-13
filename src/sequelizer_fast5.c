@@ -269,7 +269,7 @@ struct arguments {
   char *input_path;
   bool recursive;
   bool verbose;
-  bool debug_mode;
+  bool debug;
 };
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
@@ -283,7 +283,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       arguments->verbose = true;
       break;
     case 'd':
-      arguments->debug_mode = true;
+      arguments->debug = true;
       break;
     case ARGP_KEY_ARG:
       if (state->arg_num >= 1) {
@@ -308,12 +308,6 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 // Helper Functions for Modular Architecture
 // **********************************************************************
 
-// Helper function to validate input path and determine file type
-static void validate_input_path(const char *input_path, struct stat *path_stat) {
-  if (stat(input_path, path_stat) != 0) {
-    errx(EXIT_FAILURE, "Input path does not exist: %s", input_path);
-  }
-}
 
 // Helper function to initialize data structures for file processing
 static void initialize_data_structures(size_t file_count, fast5_metadata_t ***results, int **results_count) {
@@ -382,70 +376,53 @@ int main_fast5(int argc, char *argv[]) {
   arguments.input_path = NULL;
   arguments.recursive = false;
   arguments.verbose = false;
-  arguments.debug_mode = false;
+  arguments.debug = false;
   
   // Parse command line arguments using argp framework
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
   
   // ========================================================================
-  // STEP 2: VALIDATE INPUT PATH AND DETERMINE FILE TYPE
+  // STEP 2: DISCOVER AND ENUMERATE FAST5 FILES
   // ========================================================================
-  // Check if input path exists and is accessible
-  struct stat path_stat;
-  validate_input_path(arguments.input_path, &path_stat);
-  
-  // ========================================================================
-  // STEP 3: HANDLE SPECIAL CASES - DEBUG MODE AND SINGLE FILES
-  // ========================================================================
-  if (S_ISREG(path_stat.st_mode)) {
-    // STEP 3A: SINGLE FILE PROCESSING
-    if (!is_fast5_file(arguments.input_path)) {
-      errx(EXIT_FAILURE, "Input file is not a Fast5 file: %s", arguments.input_path);
-    }
-    
-    if (arguments.debug_mode) {
-      debug_fast5_file(arguments.input_path);
-    } else {
-      display_fast5_info(arguments.input_path, arguments.verbose);
-    }
-    return EXIT_SUCCESS;
-    
-  } else if (S_ISDIR(path_stat.st_mode) && arguments.debug_mode) {
-    // STEP 3B: DEBUG MODE DIRECTORY PROCESSING (first file only)
-    size_t files_count = 0;
-    char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
-    
-    if (!fast5_files || files_count == 0) {
-      errx(EXIT_FAILURE, "No Fast5 files found in directory");
-    }
-    
-    printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
-    debug_fast5_file(fast5_files[0]);
-    
-    free_file_list(fast5_files, files_count);
-    return EXIT_SUCCESS;
-    
-  } else if (!S_ISDIR(path_stat.st_mode)) {
-    errx(EXIT_FAILURE, "Input path is neither a file nor a directory: %s", arguments.input_path);
-  }
-  
-  // ========================================================================
-  // STEP 4: DISCOVER AND ENUMERATE FAST5 FILES
-  // ========================================================================
-  printf("Fast5 Directory Analysis\n");
-  printf("========================\n");
-  printf("Directory: %s\n", arguments.input_path);
-  printf("Recursive: %s\n\n", arguments.recursive ? "yes" : "no");
-  
   size_t files_count = 0;
   char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
   
   // Handle case where no Fast5 files are found
   if (!fast5_files || files_count == 0) {
-    printf("No Fast5 files found in directory.\n");
+    printf("No Fast5 files found.\n");
     return EXIT_SUCCESS;
   }
   
+  // ========================================================================
+  // STEP 3: HANDLE SPECIAL CASES - DEBUG MODE AND SINGLE FILES
+  // ========================================================================
+  if (files_count == 1) {
+    // STEP 3A: SINGLE FILE PROCESSING
+    if (arguments.debug) {
+      debug_fast5_file(fast5_files[0]);
+      free_file_list(fast5_files, files_count);
+      return EXIT_SUCCESS;
+    } else {
+      display_fast5_info(fast5_files[0], arguments.verbose);
+      free_file_list(fast5_files, files_count);
+      return EXIT_SUCCESS;
+    }
+    
+  } else if (arguments.debug) {
+    // STEP 3B: DEBUG MODE DIRECTORY PROCESSING (first file only)
+    printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
+    debug_fast5_file(fast5_files[0]);
+    free_file_list(fast5_files, files_count);
+    return EXIT_SUCCESS;
+  }
+  
+  // ========================================================================
+  // STEP 4: DIRECTORY PROCESSING SETUP
+  // ========================================================================
+  printf("Fast5 Directory Analysis\n");
+  printf("========================\n");
+  printf("Directory: %s\n", arguments.input_path);
+  printf("Recursive: %s\n\n", arguments.recursive ? "yes" : "no");
   printf("Found %zu Fast5 files:\n\n", files_count);
   
   // ========================================================================
