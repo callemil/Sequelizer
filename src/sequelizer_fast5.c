@@ -118,8 +118,7 @@ static void display_fast5_info(const char *filename, bool verbose) {
   if (verbose) {
     printf("\nDetailed read information:\n");
     for (size_t i = 0; i < metadata_count; i++) {
-      printf("  Read %zu: %s\n", i + 1, 
-             metadata[i].read_id ? metadata[i].read_id : "unknown");
+      printf("  Read %zu: %s\n", i + 1, metadata[i].read_id ? metadata[i].read_id : "unknown");
       printf("    Signal length: %u samples\n", metadata[i].signal_length);
       printf("    Duration: %u samples\n", metadata[i].duration);
       printf("    Read number: %u\n", metadata[i].read_number);
@@ -131,16 +130,12 @@ static void display_fast5_info(const char *filename, bool verbose) {
   } else if (metadata_count <= 3) {
     printf("\nRead details:\n");
     for (size_t i = 0; i < metadata_count; i++) {
-      printf("  Read %zu: %s (%u samples)\n", i + 1,
-             metadata[i].read_id ? metadata[i].read_id : "unknown",
-             metadata[i].signal_length);
+      printf("  Read %zu: %s (%u samples)\n", i + 1, metadata[i].read_id ? metadata[i].read_id : "unknown", metadata[i].signal_length);
     }
   } else {
     printf("\nShowing first 3 reads (use --verbose for all):\n");
     for (size_t i = 0; i < 3; i++) {
-      printf("  Read %zu: %s (%u samples)\n", i + 1,
-             metadata[i].read_id ? metadata[i].read_id : "unknown",
-             metadata[i].signal_length);
+      printf("  Read %zu: %s (%u samples)\n", i + 1, metadata[i].read_id ? metadata[i].read_id : "unknown", metadata[i].signal_length);
     }
     printf("  ... and %zu more reads\n", metadata_count - 3);
   }
