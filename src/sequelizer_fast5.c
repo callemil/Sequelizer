@@ -302,12 +302,14 @@ static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, i
 static void create_analysis_summary(fast5_metadata_t **results, int *results_count,
                                    char **fast5_files, size_t files_count,
                                    double processing_time_ms) {
-  basic_fast5_summary_t *summary = calculate_basic_summary((void**)results, fast5_files, 
-                                                          results_count, (int)files_count, 
-                                                          processing_time_ms);
+  fast5_analysis_summary_t *summary = calculate_comprehensive_summary((void**)results, fast5_files, 
+                                                                      results_count, (int)files_count, 
+                                                                      processing_time_ms,
+                                                                      1, // single-threaded
+                                                                      NULL); // no command line
   if (summary) {
-    print_basic_summary_human(summary);
-    free_basic_summary(summary);
+    print_comprehensive_summary_human(summary);
+    free_comprehensive_summary(summary);
   }
 }
 
@@ -386,8 +388,8 @@ int main_fast5(int argc, char *argv[]) {
     debug_fast5_file(fast5_files[0]);
   } else {
     // Regular directory processing
-    printf("Fast5 Directory Analysis\n");
-    printf("========================\n");
+    printf("Sequelizer Fast5 Directory Analysis\n");
+    printf("===================================\n");
     printf("Directory: %s\n", arguments.input_path);
     printf("Recursive: %s\n\n", arguments.recursive ? "yes" : "no");
     printf("Found %zu Fast5 files:\n\n", files_count);
