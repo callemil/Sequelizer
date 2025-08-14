@@ -8,10 +8,10 @@
 // ./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
 // ./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose 
 
-#include "../include/sequelizer.h"
 #include "sequelizer_fast5.h"
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
+#include "core/fast5_stats.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -336,11 +336,11 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   // STEP 2: DISCOVER AND ENUMERATE FAST5 FILES
   // ========================================================================
-  size_t files_count = 0;
-  char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &files_count);
+  size_t file_count = 0;
+  char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &file_count);
   
   // Handle case where no Fast5 files are found
-  if (!fast5_files || files_count == 0) {
+  if (!fast5_files || file_count == 0) {
     printf("No Fast5 files found.\n");
     return EXIT_SUCCESS;
   }
@@ -355,13 +355,13 @@ int main_fast5(int argc, char *argv[]) {
   // Initialize shared arrays for storing results from file processing
   fast5_metadata_t **results = NULL;
   int *results_count = NULL;
-  initialize_data_structures(files_count, &results, &results_count);
+  initialize_data_structures(file_count, &results, &results_count);
   
   // ========================================================================
   // STEP 4: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING  
   // ========================================================================
   // Process each file and collect metadata results (single-threaded)
-  process_files_sequentially(fast5_files, files_count, results, results_count, arguments.verbose);
+  process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose);
   
   // ========================================================================
   // STEP 5: CALCULATE PROCESSING TIME
@@ -370,12 +370,14 @@ int main_fast5(int argc, char *argv[]) {
   gettimeofday(&end_time, NULL);
   double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
                              ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
+
+  fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, NULL);
   
   // ========================================================================
   // STEP 6: OUTPUT RESULTS IN REQUESTED FORMAT
   // ========================================================================
   // Handle special cases (debug mode, single files) and regular output
-  if (files_count == 1) {
+  if (file_count == 1) {
     // Single file processing - display individual file info
     if (arguments.debug) {
       debug_fast5_file(fast5_files[0]);
@@ -390,7 +392,7 @@ int main_fast5(int argc, char *argv[]) {
     // Regular directory processing
     // Show individual file info if verbose mode enabled (using stored metadata)
     if (arguments.verbose) {
-      for (size_t i = 0; i < files_count; i++) {
+      for (size_t i = 0; i < file_count; i++) {
         if (results[i] && results_count[i] > 0) {
           display_single_file_info_from_metadata(results[i], results_count[i], fast5_files[i], arguments.verbose);
         }
@@ -398,14 +400,14 @@ int main_fast5(int argc, char *argv[]) {
     }
     
     // Generate and display summary statistics for the entire dataset
-    create_analysis_summary(results, results_count, fast5_files, files_count, processing_time_ms);
+    create_analysis_summary(results, results_count, fast5_files, file_count, processing_time_ms);
   }
   
   // ========================================================================
   // STEP 7: CLEANUP ALL ALLOCATED RESOURCES
   // ========================================================================
   // Free metadata results from all successfully processed files
-  for (size_t i = 0; i < files_count; i++) {
+  for (size_t i = 0; i < file_count; i++) {
     if (results[i] && results_count[i] > 0) {
       free_fast5_metadata(results[i], results_count[i]);
     }
@@ -414,7 +416,7 @@ int main_fast5(int argc, char *argv[]) {
   // Free main data structure arrays
   free(results);
   free(results_count);
-  free_file_list(fast5_files, files_count);
+  free_file_list(fast5_files, file_count);
   
   return EXIT_SUCCESS;
 }
