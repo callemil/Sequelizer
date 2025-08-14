@@ -14,14 +14,24 @@ extern "C" {
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <stdlib.h> // size_t
+#include <string.h> // memcopy
 #include <err.h>
 
 // Version information
 #define SEQUELIZER_VERSION_MAJOR 0
 #define SEQUELIZER_VERSION_MINOR 1
 #define SEQUELIZER_VERSION_PATCH 0
+
+# ifdef ABORT_ON_NULL
+#   define RETURN_NULL_IF(A, B) \
+    if (A) {    \
+      warnx("Failure at %s : %d", __FILE__, __LINE__);    \
+      abort(); \
+    }
+# else
+#   define RETURN_NULL_IF(A, B) if (A) { return B; }
+# endif
 
 #ifdef __cplusplus
 }
