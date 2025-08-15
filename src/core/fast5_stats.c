@@ -84,7 +84,7 @@ void calc_signal_stats(fast5_dataset_statistics_t *stats, fast5_metadata_t **res
 }
 
 // Calculate comprehensive summary with basic statistics (sequelizer level)
-fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, stats_enhancer_t enhancer) {
+fast5_analysis_summary_t* calc_analysis_summary_with_enhancer(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, summary_enhancer_t enhancer) {
 
   fast5_analysis_summary_t *summary = calloc(1, sizeof(fast5_analysis_summary_t));
   if (!summary) return NULL;
@@ -104,7 +104,7 @@ fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stat
   summary->avg_duration_seconds   = stats->total_reads > 0 ? stats->total_duration_seconds / stats->total_reads : 0.0;
 
   if (enhancer) {
-    enhancer(stats, NULL, NULL, NULL, 0);
+    enhancer(summary, stats);
   } else {
     // Initialize advanced fields to defaults (can be enhanced later)
     summary->avg_compression_ratio = 0.0;

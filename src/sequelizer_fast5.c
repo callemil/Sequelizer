@@ -347,26 +347,23 @@ int main_fast5(int argc, char *argv[]) {
   // Process each file and collect metadata results (single-threaded)
   process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose);
   
-  // ========================================================================
-  // STEP 5: CALCULATE PROCESSING TIME
-  // ========================================================================
   // Calculate total processing time for summary
   gettimeofday(&end_time, NULL);
   double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
                              ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
 
   // ========================================================================
-  // STEP 6: CALCULATE FAST5 DATASET STATISTICS
+  // STEP 5: CALCULATE FAST5 DATASET STATISTICS
   // ========================================================================
   fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, NULL);
   
   // ========================================================================
-  // STEP 7: CREATE COMPREHENSIVE ANALYSIS SUMMARY
+  // STEP 6: CREATE ANALYSIS SUMMARY
   // ========================================================================
-  fast5_analysis_summary_t* summary = calc_analysis_summary(stats, file_count, processing_time_ms, NULL);
+  fast5_analysis_summary_t* summary = calc_analysis_summary_with_enhancer(stats, file_count, processing_time_ms, NULL);
 
   // ========================================================================
-  // STEP 8: OUTPUT RESULTS IN REQUESTED FORMAT
+  // STEP 6: OUTPUT RESULTS IN REQUESTED FORMAT
   // ========================================================================
   // Handle special cases (debug mode, single files) and regular output
   if (file_count == 1) {
@@ -398,7 +395,7 @@ int main_fast5(int argc, char *argv[]) {
   free_comprehensive_summary(summary);
 
   // ========================================================================
-  // STEP 9: CLEANUP ALL ALLOCATED RESOURCES
+  // STEP 7: CLEANUP ALL ALLOCATED RESOURCES
   // ========================================================================
   // Free metadata results from all successfully processed files
   for (size_t i = 0; i < file_count; i++) {

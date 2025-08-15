@@ -98,6 +98,9 @@ typedef void (*stats_enhancer_t)(fast5_dataset_statistics_t *stats, fast5_metada
                                  char **filenames, 
                                  size_t file_count);
 
+// enhancer function template for summary calculation
+typedef void (*summary_enhancer_t)(fast5_analysis_summary_t *summary, fast5_dataset_statistics_t *stats);
+
 // Main stats calculation function
 fast5_dataset_statistics_t* calc_fast5_dataset_stats_with_enhancer(fast5_metadata_t **results, 
                                                             int *results_count, 
@@ -109,6 +112,6 @@ void calc_signal_stats(fast5_dataset_statistics_t *stats, fast5_metadata_t **res
                                 int *results_count, char **filenames, size_t file_count);
 
 // Main analysis summary calculation function
-fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, stats_enhancer_t enhancer);
+fast5_analysis_summary_t* calc_analysis_summary_with_enhancer(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, summary_enhancer_t enhancer);
 
 #endif //SEQUELIZER_FAST5_STATS_H
