@@ -363,7 +363,7 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   // STEP 7: CREATE COMPREHENSIVE ANALYSIS SUMMARY
   // ========================================================================
-  fast5_analysis_summary_t* summary = calc_analysis_summary(stats, file_count, processing_time_ms);
+  fast5_analysis_summary_t* summary = calc_analysis_summary(stats, file_count, processing_time_ms, NULL);
 
   // ========================================================================
   // STEP 8: OUTPUT RESULTS IN REQUESTED FORMAT

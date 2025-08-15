@@ -84,47 +84,49 @@ void calc_signal_stats(fast5_dataset_statistics_t *stats, fast5_metadata_t **res
 }
 
 // Calculate comprehensive summary with basic statistics (sequelizer level)
-fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms) {
+fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, stats_enhancer_t enhancer) {
 
   fast5_analysis_summary_t *summary = calloc(1, sizeof(fast5_analysis_summary_t));
   if (!summary) return NULL;
 
   summary->total_files            = file_count;
+  summary->total_file_size_mb     = stats->total_file_size_mb;
   summary->successful_files       = stats->successful_files;
   summary->failed_files           = file_count - stats->successful_files;
   summary->total_reads            = stats->total_reads;
-  summary->total_file_size_mb     = stats->total_file_size_mb;
   summary->total_samples          = stats->total_samples;
+  summary->avg_signal_length      = stats->total_reads > 0 ? (double)stats->total_samples / stats->total_reads : 0.0;
   summary->min_signal_length      = stats->min_signal_length;
   summary->max_signal_length      = stats->max_signal_length;
   summary->total_duration_seconds = stats->total_duration_seconds;
   summary->avg_bits_per_sample    = stats->total_samples > 0 ? (stats->total_file_size_mb * 1000.0 * 1000.0 * 8.0) / stats->total_samples : 0.0;
   summary->processing_time_ms     = processing_time_ms;
-  summary->avg_signal_length      = stats->total_reads > 0 ? (double)stats->total_samples / stats->total_reads : 0.0;
+  summary->avg_duration_seconds   = stats->total_reads > 0 ? stats->total_duration_seconds / stats->total_reads : 0.0;
 
-  // Initialize advanced fields to defaults (can be enhanced later)
-  summary->total_duration_seconds = 0.0;
-  summary->avg_duration_seconds = 0.0;
-  summary->avg_compression_ratio = 0.0;
-  summary->avg_effective_bits_per_sample = 0.0;
-  summary->files_with_compression_stats = 0;
-  summary->avg_median_before = 0.0;
-  summary->files_with_pore_level_stats = 0;
-  summary->avg_sampling_rate = 0.0;
-  summary->min_sampling_rate = 0.0;
-  summary->max_sampling_rate = 0.0;
-  summary->files_with_rate_variation = 0;
-  summary->has_uniform_rates = false;
-  summary->experiment_count = 0;
-  summary->total_files_with_temporal_data = 0;
-  summary->total_experimental_time_minutes = 0.0;
-  summary->experiments_with_sensor_data = 0;
-  summary->experiments = NULL;
-  summary->global_reads_per_minute = 0.0;
-  summary->avg_reads_per_sensor_per_minute = 0.0;
-  summary->peak_throughput = 0.0;
-  summary->peak_throughput_experiment = NULL;
-  summary->experiments_with_throughput_data = 0;
-
+  if (enhancer) {
+    enhancer(stats, NULL, NULL, NULL, 0);
+  } else {
+    // Initialize advanced fields to defaults (can be enhanced later)
+    summary->avg_compression_ratio = 0.0;
+    summary->avg_effective_bits_per_sample = 0.0;
+    summary->files_with_compression_stats = 0;
+    summary->avg_median_before = 0.0;
+    summary->files_with_pore_level_stats = 0;
+    summary->avg_sampling_rate = 0.0;
+    summary->min_sampling_rate = 0.0;
+    summary->max_sampling_rate = 0.0;
+    summary->files_with_rate_variation = 0;
+    summary->has_uniform_rates = false;
+    summary->experiment_count = 0;
+    summary->total_files_with_temporal_data = 0;
+    summary->total_experimental_time_minutes = 0.0;
+    summary->experiments_with_sensor_data = 0;
+    summary->experiments = NULL;
+    summary->global_reads_per_minute = 0.0;
+    summary->avg_reads_per_sensor_per_minute = 0.0;
+    summary->peak_throughput = 0.0;
+    summary->peak_throughput_experiment = NULL;
+    summary->experiments_with_throughput_data = 0;
+  }
   return summary;
 }
