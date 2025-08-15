@@ -363,39 +363,35 @@ int main_fast5(int argc, char *argv[]) {
   fast5_analysis_summary_t* summary = calc_analysis_summary_with_enhancer(stats, file_count, processing_time_ms, NULL);
 
   // ========================================================================
-  // STEP 6: OUTPUT RESULTS IN REQUESTED FORMAT
+  // STEP 7: OUTPUT RESULTS IN REQUESTED FORMAT
   // ========================================================================
-  // Handle special cases (debug mode, single files) and regular output
-  if (file_count == 1) {
-    // Single file processing - display individual file info
-    if (arguments.debug) {
+  // Handle special debug mode first (bypass normal output)
+  if (arguments.debug) {
+    if (file_count == 1) {
       debug_fast5_file(fast5_files[0]);
     } else {
-      display_single_file_info_from_metadata(results[0], results_count[0], fast5_files[0], arguments.verbose);
+      printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
+      debug_fast5_file(fast5_files[0]);
     }
-  } else if (arguments.debug) {
-    // Debug mode directory processing (first file only)
-    printf("Debug mode: Processing first file found: %s\n\n", fast5_files[0]);
-    debug_fast5_file(fast5_files[0]);
-  } else {
-    // Regular directory processing
-    // Show individual file info if verbose mode enabled (using stored metadata)
-    if (arguments.verbose) {
-      for (size_t i = 0; i < file_count; i++) {
-        if (results[i] && results_count[i] > 0) {
-          display_single_file_info_from_metadata(results[i], results_count[i], fast5_files[i], arguments.verbose);
-        }
+    return EXIT_SUCCESS;  // Exit after debug, no summary needed
+  }
+
+  // Normal output: individual file details for small datasets or verbose mode
+  if ((file_count == 1) || (arguments.verbose && file_count <= 10)) {
+    for (size_t i = 0; i < file_count; i++) {
+      if (results[i] && results_count[i] > 0) {
+        display_single_file_info_from_metadata(results[i], results_count[i], fast5_files[i], arguments.verbose);
       }
     }
-    
-  //   // Generate and display summary statistics for the entire dataset
-  //   create_analysis_summary(results, results_count, fast5_files, file_count, processing_time_ms);
   }
+
+  // Always show comprehensive summary (except debug mode which already returned)
   print_comprehensive_summary_human(summary);
   free_comprehensive_summary(summary);
 
+
   // ========================================================================
-  // STEP 7: CLEANUP ALL ALLOCATED RESOURCES
+  // STEP 8: CLEANUP ALL ALLOCATED RESOURCES
   // ========================================================================
   // Free metadata results from all successfully processed files
   for (size_t i = 0; i < file_count; i++) {
