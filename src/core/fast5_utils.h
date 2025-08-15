@@ -104,9 +104,6 @@ typedef struct {
 // File size calculation using decimal MB (1000^2)
 double get_file_size_mb(const char *filename);
 
-// Basic human-readable summary output (no JSON, no compression stats)
-void print_basic_summary_human(basic_fast5_summary_t *summary);
-
 // Comprehensive summary output functions (for shared use)
 void print_comprehensive_summary_human(fast5_analysis_summary_t *summary);
 

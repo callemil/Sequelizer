@@ -36,39 +36,6 @@ double get_file_size_mb(const char *filename) {
 }
 
 // **********************************************************************
-// Basic Human-Readable Output
-// **********************************************************************
-
-// Print basic summary in human-readable format (no JSON, no compression stats)
-void print_basic_summary_human(basic_fast5_summary_t *summary) {
-  if (!summary) {
-    return;
-  }
-  
-  printf("Sequelizer Fast5 Dataset Analysis Summary\n");
-  printf("=========================================\n");
-  printf("Files processed: %d/%d successful", summary->successful_files, summary->total_files);
-  if (summary->failed_files > 0) {
-    printf(" (%d failed)", summary->failed_files);
-  }
-  printf("\n");
-  
-  printf("Total file size: %.1f MB\n", summary->total_file_size_mb);
-  printf("Total reads: %d\n", summary->total_reads);
-  
-  if (summary->total_reads > 0) {
-    printf("Signal statistics:\n");
-    printf("  Total samples: %llu\n", (unsigned long long)summary->total_samples);
-    printf("  Average length: %.0f samples\n", summary->avg_signal_length);
-  }
-  
-  if (summary->processing_time_ms > 0) {
-    printf("Processing time: %.2f seconds\n", summary->processing_time_ms / 1000.0);
-  }
-  printf("\n");
-}
-
-// **********************************************************************
 // Comprehensive Summary Functions (for shared use by ciren and sequelizer)
 // **********************************************************************
 
