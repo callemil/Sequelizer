@@ -182,7 +182,6 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 // Helper Functions for Modular Architecture
 // **********************************************************************
 
-
 // Helper function to initialize data structures for file processing
 static void initialize_data_structures(size_t file_count, fast5_metadata_t ***results, int **results_count) {
   *results = calloc(file_count, sizeof(fast5_metadata_t*));
@@ -298,21 +297,6 @@ static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, i
   printf("\n");
 }
 
-// Helper function to create and display analysis summary
-static void create_analysis_summary(fast5_metadata_t **results, int *results_count,
-                                   char **fast5_files, size_t files_count,
-                                   double processing_time_ms) {
-  fast5_analysis_summary_t *summary = calculate_comprehensive_summary((void**)results, fast5_files, 
-                                                                      results_count, (int)files_count, 
-                                                                      processing_time_ms,
-                                                                      1, // single-threaded
-                                                                      NULL); // no command line
-  if (summary) {
-    print_comprehensive_summary_human(summary);
-    free_comprehensive_summary(summary);
-  }
-}
-
 // **********************************************************************
 // Main Function 
 // **********************************************************************
@@ -371,10 +355,18 @@ int main_fast5(int argc, char *argv[]) {
   double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
                              ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
 
+  // ========================================================================
+  // STEP 6: CALCULATE FAST5 DATASET STATISTICS
+  // ========================================================================
   fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, NULL);
   
   // ========================================================================
-  // STEP 6: OUTPUT RESULTS IN REQUESTED FORMAT
+  // STEP 7: CREATE COMPREHENSIVE ANALYSIS SUMMARY
+  // ========================================================================
+  fast5_analysis_summary_t* summary = calc_analysis_summary(stats, file_count, processing_time_ms);
+
+  // ========================================================================
+  // STEP 8: OUTPUT RESULTS IN REQUESTED FORMAT
   // ========================================================================
   // Handle special cases (debug mode, single files) and regular output
   if (file_count == 1) {
@@ -399,12 +391,14 @@ int main_fast5(int argc, char *argv[]) {
       }
     }
     
-    // Generate and display summary statistics for the entire dataset
-    create_analysis_summary(results, results_count, fast5_files, file_count, processing_time_ms);
+  //   // Generate and display summary statistics for the entire dataset
+  //   create_analysis_summary(results, results_count, fast5_files, file_count, processing_time_ms);
   }
-  
+  print_comprehensive_summary_human(summary);
+  free_comprehensive_summary(summary);
+
   // ========================================================================
-  // STEP 7: CLEANUP ALL ALLOCATED RESOURCES
+  // STEP 9: CLEANUP ALL ALLOCATED RESOURCES
   // ========================================================================
   // Free metadata results from all successfully processed files
   for (size_t i = 0; i < file_count; i++) {

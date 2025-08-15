@@ -7,7 +7,7 @@
 #define SEQUELIZER_FAST5_STATS_H
 
 #include "../../include/sequelizer.h"
-#include "fast5_utils.h"  // fast5_metadata_t
+#include "fast5_utils.h"  // fast5_metadata_t fast5_analysis_summary_t
 
 // Sensor analysis structure
 typedef struct {
@@ -91,19 +91,24 @@ typedef struct {
   // Future statistics can be added here
 } fast5_dataset_statistics_t;
 
-typedef void (*stats_enhancer_t)(fast5_dataset_statistics_t *stats, 
-                                 fast5_metadata_t **results, 
+
+// enhancer function template for stats calculation
+typedef void (*stats_enhancer_t)(fast5_dataset_statistics_t *stats, fast5_metadata_t **results, 
                                  int *results_count, 
                                  char **filenames, 
                                  size_t file_count);
 
-// Main calculation function
+// Main stats calculation function
 fast5_dataset_statistics_t* calc_fast5_dataset_stats_with_enhancer(fast5_metadata_t **results, 
                                                             int *results_count, 
                                                             char **filenames,
                                                             size_t file_count, stats_enhancer_t enhancer);
+
 // Individual calculation functions for modularity
 void calc_signal_stats(fast5_dataset_statistics_t *stats, fast5_metadata_t **results, 
                                 int *results_count, char **filenames, size_t file_count);
+
+// Main analysis summary calculation function
+fast5_analysis_summary_t* calc_analysis_summary(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms);
 
 #endif //SEQUELIZER_FAST5_STATS_H
