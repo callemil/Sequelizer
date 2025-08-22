@@ -4,7 +4,9 @@
 // S Magierowski Aug 22 2025
 //
 // File format conversion operations for Sequelizer
-// 
+// cmake ..
+// cmake --build .
+// ./sequelizer convert --help
 // ./sequelizer convert input.fast5 --to metadata -o output.txt
 // ./sequelizer convert /path/to/fast5_files/ --to raw --recursive -o output.txt
 
@@ -76,9 +78,6 @@ static int convert_to_raw(char **files, size_t file_count, const char *output_fi
 // Argument Parsing
 // **********************************************************************
 
-const char *argp_program_version = "sequelizer convert 1.0";
-const char *argp_program_bug_address = "magierowski@gmail.com";
-
 static char doc[] = "sequelizer convert -- File format conversion\v"
 "EXAMPLES:\n"
 "  sequelizer convert data.fast5 --to metadata -o output.txt\n"
@@ -136,7 +135,7 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   return 0;
 }
 
-static struct argp argp = {options, parse_opt, args_doc, doc};
+static struct argp convert_argp = {options, parse_opt, args_doc, doc};
 
 // **********************************************************************
 // Main Function 
@@ -157,7 +156,7 @@ int main_convert(int argc, char *argv[]) {
   arguments.verbose = false;
   
   // Parse command line arguments using argp framework
-  argp_parse(&argp, argc, argv, 0, 0, &arguments);
+  argp_parse(&convert_argp, argc, argv, 0, 0, &arguments);
   
   // ========================================================================
   // STEP 2: VALIDATE ARGUMENTS
