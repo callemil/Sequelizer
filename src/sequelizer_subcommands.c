@@ -16,6 +16,9 @@ enum sequelizer_mode get_sequelizer_mode(const char *modestr) {
   if (0 == strcmp(modestr, "fast5")) {
     return SEQUELIZER_MODE_FAST5;
   }
+  if (0 == strcmp(modestr, "convert")) {
+    return SEQUELIZER_MODE_CONVERT;
+  }
   return SEQUELIZER_MODE_INVALID;
 }
 
@@ -27,6 +30,8 @@ const char *sequelizer_mode_string(const enum sequelizer_mode mode) {
       return "seqgen";
     case SEQUELIZER_MODE_FAST5:
       return "fast5";
+    case SEQUELIZER_MODE_CONVERT:
+      return "convert";
     case SEQUELIZER_MODE_INVALID:
       errx(EXIT_FAILURE, "Invalid Sequelizer mode\n");
     default:
@@ -43,6 +48,8 @@ const char *sequelizer_mode_description(const enum sequelizer_mode mode) {
       return "Generate synthetic sequences and signals";
     case SEQUELIZER_MODE_FAST5:
       return "Fast5 file operations";
+    case SEQUELIZER_MODE_CONVERT:
+      return "File format conversion";
     case SEQUELIZER_MODE_INVALID:
       errx(EXIT_FAILURE, "Invalid Sequelizer mode\n");
     default:
@@ -67,6 +74,7 @@ int main_help_short(void) {
   printf("* sequelizer help          Print detailed help\n");
   printf("* sequelizer seqgen        Generate synthetic sequences and signals\n");
   printf("* sequelizer fast5         Fast5 file operations\n");
+  printf("* sequelizer convert       File format conversion\n");
   printf("\nFor more information: sequelizer help\n");
   return EXIT_SUCCESS;
 }

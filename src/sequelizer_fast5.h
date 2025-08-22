@@ -1,6 +1,7 @@
-//
-// Created by Sebastian Magierowski on 2025-07-26.
-//
+// **********************************************************************
+// sequelizer_fast5.h
+// **********************************************************************
+// S Magierowski Jul 26 2025
 
 #ifndef SEQUELIZER_FAST5_H
 #define SEQUELIZER_FAST5_H

@@ -65,7 +65,7 @@ void print_comprehensive_summary_human(fast5_analysis_summary_t *summary) {
       printf("  Average bits per sample: %.2f\n", summary->avg_bits_per_sample);
     }
     if (summary->total_duration_seconds > 0) {
-      printf("  Total duration: %.1f seconds\n", summary->total_duration_seconds);
+      printf("  Total duration: %.1f minutes\n", summary->total_duration_seconds/60);
       printf("  Avg duration: %.1f seconds\n", summary->avg_duration_seconds);
     }
   }

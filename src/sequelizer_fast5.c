@@ -389,7 +389,6 @@ int main_fast5(int argc, char *argv[]) {
   print_comprehensive_summary_human(summary);
   free_comprehensive_summary(summary);
 
-
   // ========================================================================
   // STEP 8: CLEANUP ALL ALLOCATED RESOURCES
   // ========================================================================
