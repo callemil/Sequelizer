@@ -502,65 +502,6 @@ static fast5_metadata_t* read_multi_read_metadata(hid_t file_id, const char *fil
   return metadata;
 }
 
-// Main function to read Fast5 metadata
-fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_count) {
-  if (!filename || !metadata_count) return NULL;
-  
-  *metadata_count = 0;
-  
-  // Suppress HDF5 error messages temporarily
-  H5E_auto2_t old_func;
-  void *old_client_data;
-  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
-  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
-  
-  // Open the Fast5 file
-  hid_t file_id = H5Fopen(filename, H5F_ACC_RDONLY, H5P_DEFAULT);
-  
-  // Restore HDF5 error reporting
-  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
-  
-  if (file_id < 0) {
-    warnx("Failed to open Fast5 file: %s", filename);
-    return NULL;
-  }
-  
-  fast5_metadata_t *metadata = NULL;
-  
-  // Improved format detection - check multiple indicators
-  bool is_multi_read = false;
-  
-  // Check for file_type attribute first
-  htri_t attr_exists = H5Aexists(file_id, "file_type");
-  if (attr_exists > 0) {
-    is_multi_read = true;
-  } else {
-    // No file_type attribute - check for read_* groups at root level
-    hsize_t num_objs;
-    if (H5Gget_num_objs(file_id, &num_objs) >= 0 && num_objs > 0) {
-      // Check first few objects for read_ pattern
-      for (hsize_t i = 0; i < num_objs && i < 5; i++) {
-        char obj_name[256];
-        if (H5Gget_objname_by_idx(file_id, i, obj_name, sizeof(obj_name)) >= 0) {
-          if (strncmp(obj_name, "read_", 5) == 0) {
-            is_multi_read = true;
-            break;
-          }
-        }
-      }
-    }
-  }
-  
-  if (is_multi_read) {
-    metadata = read_multi_read_metadata(file_id, filename, metadata_count);
-  } else {
-    metadata = read_single_read_metadata(file_id, filename, metadata_count);
-  }
-  
-  H5Fclose(file_id);
-  return metadata;
-}
-
 // Free Fast5 metadata
 void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
   if (!metadata) return;

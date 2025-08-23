@@ -26,7 +26,6 @@ bool has_fast5_structure(const char *filename);
 
 // Fast5 file reading functions
 fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_count);
-void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);
