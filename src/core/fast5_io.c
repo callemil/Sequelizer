@@ -356,6 +356,82 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count) {
 }
 
 // **********************************************************************
+// Metadata Enhancer Functions
+// **********************************************************************
+
+// Enhancer function to extract calibration parameters from Fast5 files
+void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // Initialize calibration fields
+  metadata->offset = 0.0;
+  metadata->range = 0.0;
+  metadata->digitisation = 0.0;
+  metadata->calibration_available = false;
+  
+  if (signal_dataset_id < 0) return;
+  
+  // Get the dataset path to determine read location
+  char obj_name[256];
+  ssize_t name_len = H5Iget_name(signal_dataset_id, obj_name, sizeof(obj_name));
+  if (name_len <= 0) return;
+  
+  hid_t channel_group_id = -1;
+  
+  if (strstr(obj_name, "/Raw/Reads/")) {
+    // Single-read format: /Raw/Reads/Read_xxx/Signal -> /UniqueGlobalKey/channel_id
+    channel_group_id = H5Gopen2(file_id, "/UniqueGlobalKey/channel_id", H5P_DEFAULT);
+  } else if (strstr(obj_name, "/Raw/Signal")) {
+    // Multi-read format: /read_<UUID>/Raw/Signal -> /read_<UUID>/channel_id
+    char channel_path[512];
+    char *read_part = strstr(obj_name, "/read_");
+    if (read_part) {
+      char *raw_part = strstr(read_part, "/Raw");
+      if (raw_part) {
+        size_t read_len = raw_part - obj_name;
+        snprintf(channel_path, sizeof(channel_path), "%.*s/channel_id", (int)read_len, obj_name);
+        channel_group_id = H5Gopen2(file_id, channel_path, H5P_DEFAULT);
+      }
+    }
+  }
+  
+  if (channel_group_id >= 0) {
+    bool got_offset = false, got_range = false, got_digitisation = false;
+    
+    // Extract offset
+    hid_t offset_attr = H5Aopen(channel_group_id, "offset", H5P_DEFAULT);
+    if (offset_attr >= 0) {
+      if (H5Aread(offset_attr, H5T_NATIVE_DOUBLE, &metadata->offset) >= 0) {
+        got_offset = true;
+      }
+      H5Aclose(offset_attr);
+    }
+    
+    // Extract range
+    hid_t range_attr = H5Aopen(channel_group_id, "range", H5P_DEFAULT);
+    if (range_attr >= 0) {
+      if (H5Aread(range_attr, H5T_NATIVE_DOUBLE, &metadata->range) >= 0) {
+        got_range = true;
+      }
+      H5Aclose(range_attr);
+    }
+    
+    // Extract digitisation
+    hid_t digitisation_attr = H5Aopen(channel_group_id, "digitisation", H5P_DEFAULT);
+    if (digitisation_attr >= 0) {
+      if (H5Aread(digitisation_attr, H5T_NATIVE_DOUBLE, &metadata->digitisation) >= 0) {
+        got_digitisation = true;
+      }
+      H5Aclose(digitisation_attr);
+    }
+    
+    // Mark calibration as available if we got all three parameters
+    metadata->calibration_available = got_offset && got_range && got_digitisation;
+    
+    H5Gclose(channel_group_id);
+  }
+}
+
+
+// **********************************************************************
 // Fast5 Metadata Reading Functions (ENHANCED)
 // **********************************************************************
 // Enhanced single-read metadata function with enhancer support

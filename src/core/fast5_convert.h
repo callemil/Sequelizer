@@ -15,8 +15,8 @@
 // Signal Extraction Functions
 // **********************************************************************
 
-// Write signal data to text file (one sample per line)
-int write_signal_to_file(const char *filename, float *signal, size_t signal_length);
+// Write signal data to text file with metadata header (one sample per line)
+int write_signal_to_file(const char *filename, float *signal, size_t signal_length, const fast5_metadata_t *metadata);
 
 // Create output directory if it doesn't exist
 int create_directory(const char *path);

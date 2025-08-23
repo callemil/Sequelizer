@@ -38,6 +38,11 @@ typedef struct {
     char *run_id;              // Experiment identifier
     char *channel_number;       // Sensor/channel identifier ("1", "142", etc.)
     bool temporal_data_available; // Whether temporal analysis was performed
+    // Calibration parameters for raw signal conversion
+    double offset;             // Baseline offset for pA conversion
+    double range;              // Full scale range in picoamperes
+    double digitisation;       // ADC resolution (typically 8192)
+    bool calibration_available; // Whether calibration data was found
 } fast5_metadata_t;
 
 // Basic summary for simple reporting (no compression analysis)

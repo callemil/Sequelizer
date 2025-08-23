@@ -148,15 +148,54 @@ static void extract_channel_number(hid_t file_id, hid_t signal_dataset_id, fast5
   }
 }
 
-int write_signal_to_file(const char *filename, float *signal, size_t signal_length) {
+// Combined enhancer that extracts both channel number and calibration parameters
+static void extract_channel_and_calibration_combined(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // First extract channel number using existing function
+  extract_channel_number(file_id, signal_dataset_id, metadata);
+  
+  // Then extract calibration parameters using the new function from fast5_io.c
+  extract_calibration_parameters(file_id, signal_dataset_id, metadata);
+}
+
+int write_signal_to_file(const char *filename, float *signal, size_t signal_length, const fast5_metadata_t *metadata) {
   FILE *f = fopen(filename, "w");
   if (!f) {
     warnx("Cannot create output file: %s", filename);
     return EXIT_FAILURE;
   }
   
+  // Write metadata header if available
+  if (metadata) {
+    // Channel information
+    if (metadata->channel_number) {
+      fprintf(f, "# Channel: %s\n", metadata->channel_number);
+    }
+    
+    // Calibration parameters (if available)
+    if (metadata->calibration_available) {
+      fprintf(f, "# Offset: %.6f\n", metadata->offset);
+      fprintf(f, "# Range: %.6f\n", metadata->range);
+      fprintf(f, "# Digitisation: %.6f\n", metadata->digitisation);
+      fprintf(f, "# Conversion: signal_pA = (raw_signal + offset) * range / digitisation\n");
+    }
+    
+    // Additional metadata
+    if (metadata->sample_rate > 0) {
+      fprintf(f, "# Sample Rate: %.1f\n", metadata->sample_rate);
+    }
+    
+    if (metadata->read_id) {
+      fprintf(f, "# Read ID: %s\n", metadata->read_id);
+    }
+    
+    // Separator line
+    fprintf(f, "#\n");
+  }
+  
+  // Write signal data
   for (size_t i = 0; i < signal_length; i++) {
-    fprintf(f, "%.6f\n", signal[i]);
+    // Raw ADC values are integers, so cast and print without decimals
+    fprintf(f, "%d\n", (int)signal[i]);
   }
   
   fclose(f);
@@ -200,9 +239,9 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       printf("Processing file: %s\n", files[i]);
     }
     
-    // Read metadata to determine format and get read IDs with channel numbers
+    // Read metadata to determine format and get read IDs with channel numbers and calibration
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(files[i], &metadata_count, extract_channel_number);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(files[i], &metadata_count, extract_channel_and_calibration_combined);
     
     if (!metadata || metadata_count == 0) {
       warnx("Cannot read metadata from file: %s", files[i]);
@@ -285,8 +324,8 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
         }
       }
       
-      // Write signal to file
-      if (write_signal_to_file(output_filename, signal, signal_length) == EXIT_SUCCESS) {
+      // Write signal to file with metadata header
+      if (write_signal_to_file(output_filename, signal, signal_length, &metadata[j]) == EXIT_SUCCESS) {
         if (verbose) {
           printf("  Wrote %zu samples to: %s\n", signal_length, output_filename);
         }
