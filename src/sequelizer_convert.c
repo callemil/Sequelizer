@@ -9,10 +9,13 @@
 // ./sequelizer convert --help
 // ./sequelizer convert input.fast5 --to metadata -o output.txt
 // ./sequelizer convert /path/to/fast5_files/ --to raw --recursive -o output.txt
+// ./sequelizer convert /Users/seb/Research/Scraps/scrappie_2016_11_28_73e3/reads/read_ch228_file118.fast5 --to raw -o signal.txt
+// ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/FAL11227_e2243762ddcab66a4299cc8b21f76b3f66c41f01_0.fast5 --to raw -o signals/
 
 #include "sequelizer_convert.h"
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
+#include "core/fast5_convert.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -48,47 +51,26 @@ static void display_progress(int completed, int total, bool verbose) {
 // Format Conversion Functions
 // **********************************************************************
 
-static int convert_to_metadata(char **files, size_t file_count, const char *output_file, bool verbose) {
-  printf("Converting %zu files to metadata format...\n", file_count);
-  
-  // TODO: Implement metadata format conversion
-  // This should extract and format metadata from Fast5 files
-  
-  if (verbose) {
-    printf("Metadata conversion not yet implemented.\n");
-  }
-  
-  return EXIT_SUCCESS;
-}
-
-static int convert_to_raw(char **files, size_t file_count, const char *output_file, bool verbose) {
-  printf("Converting %zu files to raw format...\n", file_count);
-  
-  // TODO: Implement raw format conversion
-  // This should extract raw signal data from Fast5 files
-  
-  if (verbose) {
-    printf("Raw format conversion not yet implemented.\n");
-  }
-  
-  return EXIT_SUCCESS;
+static int convert_to_raw(char **files, size_t file_count, const char *output_file, bool verbose, bool all_reads) {
+  return extract_raw_signals(files, file_count, output_file, all_reads, verbose);
 }
 
 // **********************************************************************
 // Argument Parsing
 // **********************************************************************
 
-static char doc[] = "sequelizer convert -- File format conversion\v"
+static char doc[] = "sequelizer convert -- Extract raw signals from Fast5 files\v"
 "EXAMPLES:\n"
-"  sequelizer convert data.fast5 --to metadata -o output.txt\n"
-"  sequelizer convert /path/to/fast5_files/ --to raw --recursive -o signals.txt\n"
-"  sequelizer convert input.fast5 --to metadata --verbose";
+"  sequelizer convert single.fast5 --to raw -o signal.txt\n"
+"  sequelizer convert multi.fast5 --to raw -o signals/\n"
+"  sequelizer convert multi.fast5 --to raw -o signals/ --all";
 
 static char args_doc[] = "INPUT";
 
 static struct argp_option options[] = {
-  {"to",            't', "FORMAT",  0, "Output format: metadata, raw"},
-  {"output",        'o', "FILE",    0, "Output file"},
+  {"to",            't', "FORMAT",  0, "Output format: raw (default)"},
+  {"output",        'o', "FILE",    0, "Output file or directory"},
+  {"all",           'a', 0,         0, "Extract all reads (default: first 3 for multi-read)"},
   {"recursive",     'r', 0,         0, "Search directories recursively"},
   {"verbose",       'v', 0,         0, "Show detailed information"},
   {0}
@@ -98,6 +80,7 @@ struct arguments {
   char *input_path;
   char *output_format;
   char *output_file;
+  bool all;
   bool recursive;
   bool verbose;
 };
@@ -111,6 +94,9 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'o':
       arguments->output_file = arg;
+      break;
+    case 'a':
+      arguments->all = true;
       break;
     case 'r':
       arguments->recursive = true;
@@ -150,8 +136,9 @@ int main_convert(int argc, char *argv[]) {
   
   // Set sensible defaults for all configuration options
   arguments.input_path = NULL;
-  arguments.output_format = "metadata";
+  arguments.output_format = "raw";
   arguments.output_file = NULL;
+  arguments.all = false;
   arguments.recursive = false;
   arguments.verbose = false;
   
@@ -163,9 +150,8 @@ int main_convert(int argc, char *argv[]) {
   // ========================================================================
   
   // Validate output format
-  if (strcmp(arguments.output_format, "metadata") != 0 && 
-      strcmp(arguments.output_format, "raw") != 0) {
-    errx(EXIT_FAILURE, "Invalid output format '%s'. Supported formats: metadata, raw", 
+  if (strcmp(arguments.output_format, "raw") != 0) {
+    errx(EXIT_FAILURE, "Invalid output format '%s'. Supported formats: raw", 
          arguments.output_format);
   }
   
@@ -194,13 +180,7 @@ int main_convert(int argc, char *argv[]) {
   // STEP 4: PERFORM FORMAT CONVERSION
   // ========================================================================
   
-  int result = EXIT_SUCCESS;
-  
-  if (strcmp(arguments.output_format, "metadata") == 0) {
-    result = convert_to_metadata(input_files, file_count, arguments.output_file, arguments.verbose);
-  } else if (strcmp(arguments.output_format, "raw") == 0) {
-    result = convert_to_raw(input_files, file_count, arguments.output_file, arguments.verbose);
-  }
+  int result = convert_to_raw(input_files, file_count, arguments.output_file, arguments.verbose, arguments.all);
   
   // ========================================================================
   // STEP 5: CLEANUP ALL ALLOCATED RESOURCES

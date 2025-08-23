@@ -28,6 +28,7 @@ set(SEQUELIZER_SOURCES
     src/core/fast5_io.c
     src/core/fast5_utils.c
     src/core/fast5_stats.c
+    src/core/fast5_convert.c
 )
 
 # Sequelizer static library

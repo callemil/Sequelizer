@@ -25,13 +25,12 @@ bool is_valid_hdf5_file(const char *filename);
 bool has_fast5_structure(const char *filename);
 
 // Fast5 file reading functions
-fast5_metadata_t* read_fast5_metadata(const char *filename, size_t *metadata_count);
+typedef void (*metadata_enhancer_t)(hid_t file_id, hid_t signal_dataset, fast5_metadata_t *metadata);
+fast5_metadata_t* read_fast5_metadata_with_enhancer(const char *filename, size_t *metadata_count, metadata_enhancer_t enhancer);
+void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);
 void free_fast5_signal(float *signal);
-
-typedef void (*metadata_enhancer_t)(hid_t file_id, hid_t signal_dataset, fast5_metadata_t *metadata);
-fast5_metadata_t* read_fast5_metadata_with_enhancer(const char *filename, size_t *metadata_count, metadata_enhancer_t enhancer);
 
 #endif // SEQUELIZER_FAST5_IO_H
