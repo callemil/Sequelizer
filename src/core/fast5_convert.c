@@ -12,10 +12,140 @@
 #include <sys/stat.h>
 #include <errno.h>
 #include <err.h>
+#include <hdf5.h>
 
 // **********************************************************************
 // Utility Functions
 // **********************************************************************
+
+// Helper function to try extracting channel from filename as fallback
+static void try_filename_channel_extraction(const char *filename, fast5_metadata_t *metadata) {
+  if (!filename || metadata->channel_number) return; // Already have channel or no filename
+  
+  const char *basename = strrchr(filename, '/');
+  basename = basename ? basename + 1 : filename;
+  
+  // Look for patterns like "ch271" or "channel271"  
+  const char *ch_pos = strstr(basename, "ch");
+  if (ch_pos) {
+    int channel_num = 0;
+    if (sscanf(ch_pos, "ch%d", &channel_num) == 1 && channel_num > 0 && channel_num < 10000) {
+      metadata->channel_number = malloc(16);
+      if (metadata->channel_number) {
+        snprintf(metadata->channel_number, 16, "%d", channel_num);
+      }
+    }
+  }
+}
+
+// Simple enhancer to extract channel number from Fast5 files
+static void extract_channel_number(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // Initialize
+  metadata->channel_number = NULL;
+  
+  if (signal_dataset_id < 0) return;
+  
+  // Get the dataset path to determine format
+  char obj_name[256];
+  ssize_t name_len = H5Iget_name(signal_dataset_id, obj_name, sizeof(obj_name));
+  if (name_len <= 0) return;
+  
+  
+  
+  hid_t channel_group_id = -1;
+  
+  if (strstr(obj_name, "/Raw/Reads/")) {
+    // Single-read format: /Raw/Reads/Read_xxx/Signal -> /UniqueGlobalKey/channel_id
+    channel_group_id = H5Gopen2(file_id, "/UniqueGlobalKey/channel_id", H5P_DEFAULT);
+  } else if (strstr(obj_name, "/Raw/Signal")) {
+    // Multi-read format: /read_<UUID>/Raw/Signal -> /read_<UUID>/channel_id
+    char channel_path[512];
+    char *read_part = strstr(obj_name, "/read_");
+    if (read_part) {
+      char *raw_part = strstr(read_part, "/Raw");
+      if (raw_part) {
+        size_t read_len = raw_part - obj_name;
+        snprintf(channel_path, sizeof(channel_path), "%.*s/channel_id", (int)read_len, obj_name);
+        channel_group_id = H5Gopen2(file_id, channel_path, H5P_DEFAULT);
+      }
+    }
+  }
+  
+  if (channel_group_id >= 0) {
+    // Try to read channel_number attribute
+    hid_t attr_id = H5Aopen(channel_group_id, "channel_number", H5P_DEFAULT);
+    if (attr_id >= 0) {
+      hid_t attr_type = H5Aget_type(attr_id);
+      H5T_class_t type_class = H5Tget_class(attr_type);
+      
+      if (type_class == H5T_INTEGER) {
+        int channel_num;
+        if (H5Aread(attr_id, H5T_NATIVE_INT, &channel_num) >= 0) {
+          metadata->channel_number = malloc(16);
+          if (metadata->channel_number) {
+            snprintf(metadata->channel_number, 16, "%d", channel_num);
+          }
+        }
+      } else if (type_class == H5T_STRING) {
+        size_t str_size = H5Tget_size(attr_type);
+        
+        if (str_size == 8) {
+          // This might be a binary-encoded integer
+          unsigned char channel_bytes[8];
+          if (H5Aread(attr_id, attr_type, channel_bytes) >= 0) {
+            // Try different interpretations
+            uint32_t as_uint32_le = *((uint32_t*)channel_bytes);
+            uint32_t as_uint32_be = __builtin_bswap32(*((uint32_t*)channel_bytes));
+            uint16_t as_uint16_le = *((uint16_t*)channel_bytes);
+            uint16_t as_uint16_be = __builtin_bswap16(*((uint16_t*)channel_bytes));
+            
+            // Pick the most reasonable channel number (should be 1-512 for most nanopore devices)
+            uint32_t channel_num = 0;
+            if (as_uint16_le > 0 && as_uint16_le < 1000) {
+              channel_num = as_uint16_le;
+            } else if (as_uint16_be > 0 && as_uint16_be < 1000) {
+              channel_num = as_uint16_be;
+            } else if (as_uint32_le > 0 && as_uint32_le < 1000) {
+              channel_num = as_uint32_le;
+            } else if (as_uint32_be > 0 && as_uint32_be < 1000) {
+              channel_num = as_uint32_be;
+            }
+            
+            if (channel_num > 0) {
+              metadata->channel_number = malloc(16);
+              if (metadata->channel_number) {
+                snprintf(metadata->channel_number, 16, "%u", channel_num);
+              }
+            }
+          }
+        } else if (str_size > 0 && str_size < 32) {
+          char channel_str[32] = {0}; // Initialize to zeros
+          if (H5Aread(attr_id, attr_type, channel_str) >= 0) {
+            // Check if it's a null-terminated text string
+            bool is_text = true;
+            for (size_t i = 0; i < str_size && channel_str[i] != '\0'; i++) {
+              if (channel_str[i] < 32 || channel_str[i] > 126) { // Non-printable ASCII
+                is_text = false;
+                break;
+              }
+            }
+            if (is_text) {
+              channel_str[str_size] = '\0'; // Ensure null termination
+              metadata->channel_number = malloc(str_size + 1);
+              if (metadata->channel_number) {
+                strcpy(metadata->channel_number, channel_str);
+              }
+            }
+          }
+        }
+      }
+      
+      H5Tclose(attr_type);
+      H5Aclose(attr_id);
+    }
+    H5Gclose(channel_group_id);
+  }
+}
 
 int write_signal_to_file(const char *filename, float *signal, size_t signal_length) {
   FILE *f = fopen(filename, "w");
@@ -64,13 +194,20 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       printf("Processing file: %s\n", files[i]);
     }
     
-    // Read metadata to determine format and get read IDs
+    // Read metadata to determine format and get read IDs with channel numbers
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(files[i], &metadata_count, NULL);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(files[i], &metadata_count, extract_channel_number);
     
     if (!metadata || metadata_count == 0) {
       warnx("Cannot read metadata from file: %s", files[i]);
       continue;
+    }
+    
+    // Try filename extraction as fallback for any missing channel numbers
+    for (size_t j = 0; j < metadata_count; j++) {
+      if (!metadata[j].channel_number) {
+        try_filename_channel_extraction(files[i], &metadata[j]);
+      }
     }
     
     // Handle single-read vs multi-read files
@@ -110,24 +247,29 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       char output_filename[512];
       if (is_multi_read) {
         if (file_count == 1 && output_file) {
-          // Single file to directory: output_dir/read_001.txt
-          snprintf(output_filename, sizeof(output_filename), "%s/read_%03zu.txt", output_file, j + 1);
+          // Single file to directory: output_dir/read_ch228_rd123.txt
+          snprintf(output_filename, sizeof(output_filename), "%s/read_ch%s_rd%u.txt", 
+                   output_file, 
+                   metadata[j].channel_number ? metadata[j].channel_number : "unknown",
+                   metadata[j].read_number);
         } else {
-          // Multiple files or no output specified: basename_read_001.txt
+          // Multiple files or no output specified: basename_read_ch228_rd123.txt
           const char *basename = strrchr(files[i], '/');
           basename = basename ? basename + 1 : files[i];
-          snprintf(output_filename, sizeof(output_filename), "%.*s_read_%03zu.txt", 
-                   (int)(strstr(basename, ".fast5") - basename), basename, j + 1);
+          snprintf(output_filename, sizeof(output_filename), "%.*s_read_ch%s_rd%u.txt", 
+                   (int)(strstr(basename, ".fast5") - basename), basename,
+                   metadata[j].channel_number ? metadata[j].channel_number : "unknown",
+                   metadata[j].read_number);
         }
       } else {
         // Single-read file
         if (output_file) {
           snprintf(output_filename, sizeof(output_filename), "%s", output_file);
         } else {
-          const char *basename = strrchr(files[i], '/');
-          basename = basename ? basename + 1 : files[i];
-          snprintf(output_filename, sizeof(output_filename), "%.*s_signal.txt", 
-                   (int)(strstr(basename, ".fast5") - basename), basename);
+          // For single-read files without output specified, just use channel/read naming
+          snprintf(output_filename, sizeof(output_filename), "read_ch%s_rd%u.txt", 
+                   metadata[j].channel_number ? metadata[j].channel_number : "unknown",
+                   metadata[j].read_number);
         }
       }
       
