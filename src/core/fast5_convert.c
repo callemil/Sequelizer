@@ -6,6 +6,7 @@
 
 #include "fast5_convert.h"
 #include "fast5_io.h"
+#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -189,6 +190,11 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
     printf("Converting %zu files to raw format...\n", file_count);
   }
   
+  // Show initial progress bar (only for multiple files)
+  if (file_count > 1) {
+    display_progress_simple(0, (int)file_count, verbose, "converting files");
+  }
+  
   for (size_t i = 0; i < file_count; i++) {
     if (verbose) {
       printf("Processing file: %s\n", files[i]);
@@ -220,6 +226,12 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       if (verbose) {
         printf("  Multi-read file: processing first 3 of %zu reads (use --all for all)\n", metadata_count);
       }
+    }
+    
+    // Show progress bar for single multi-read file with many reads
+    bool show_read_progress = (file_count == 1 && is_multi_read && reads_to_process > 10);
+    if (show_read_progress) {
+      display_progress_simple(0, (int)reads_to_process, verbose, "extracting reads");
     }
     
     if (is_multi_read && file_count == 1 && output_file) {
@@ -281,9 +293,29 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       }
       
       free_fast5_signal(signal);
+      
+      // Update read progress for single multi-read file
+      if (show_read_progress) {
+        display_progress_simple((int)(j + 1), (int)reads_to_process, verbose, "extracting reads");
+      }
+    }
+    
+    // Complete read progress bar for single multi-read file
+    if (show_read_progress) {
+      printf("\n");
     }
     
     free_fast5_metadata(metadata, metadata_count);
+    
+    // Update progress bar (only for multiple files)
+    if (file_count > 1) {
+      display_progress_simple((int)(i + 1), (int)file_count, verbose, "converting files");
+    }
+  }
+  
+  // Complete progress bar and move to next line (only for multiple files)
+  if (file_count > 1) {
+    printf("\n");
   }
   
   return EXIT_SUCCESS;

@@ -11,11 +11,13 @@
 // ./sequelizer convert /path/to/fast5_files/ --to raw --recursive -o output.txt
 // ./sequelizer convert /Users/seb/Research/Scraps/scrappie_2016_11_28_73e3/reads/read_ch228_file118.fast5 --to raw -o signal.txt
 // ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/FAL11227_e2243762ddcab66a4299cc8b21f76b3f66c41f01_0.fast5 --to raw -o signals/
+// ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/FAL11227_e2243762ddcab66a4299cc8b21f76b3f66c41f01_0.fast5 --to raw -o signals/ --all
 
 #include "sequelizer_convert.h"
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
 #include "core/fast5_convert.h"
+#include "core/util.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -23,29 +25,6 @@
 #include <argp.h>
 #include <err.h>
 
-// **********************************************************************
-// Progress Bar Functions
-// **********************************************************************
-
-static void display_progress(int completed, int total, bool verbose) {
-  if (total == 0) return;
-  
-  int percent = (completed * 100) / total;
-  int bar_width = 40;
-  int filled = (completed * bar_width) / total;
-  
-  printf("\r[");
-  for (int i = 0; i < bar_width; i++) {
-    printf(i < filled ? "█" : "░");
-  }
-  printf("] %d%% (%d/%d)", percent, completed, total);
-  
-  if (verbose) {
-    printf(" converting files");
-  }
-  
-  fflush(stdout);
-}
 
 // **********************************************************************
 // Format Conversion Functions

@@ -12,6 +12,7 @@
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
 #include "core/fast5_stats.h"
+#include "core/util.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -19,29 +20,6 @@
 #include <argp.h>
 #include <err.h>
 
-// **********************************************************************
-// Progress Bar Functions
-// **********************************************************************
-
-static void display_progress(int completed, int total, bool verbose) {
-  if (total == 0) return;
-  
-  int percent = (completed * 100) / total;
-  int bar_width = 40;
-  int filled = (completed * bar_width) / total;
-  
-  printf("\r[");
-  for (int i = 0; i < bar_width; i++) {
-    printf(i < filled ? "█" : "░");
-  }
-  printf("] %d%% (%d/%d)", percent, completed, total);
-  
-  if (verbose) {
-    printf(" analyzing Fast5 files");
-  }
-  
-  fflush(stdout);
-}
 
 // Helper function to debug HDF5 file structure
 static void debug_fast5_file(const char *filename) {
@@ -197,7 +175,7 @@ static void process_files_sequentially(char **fast5_files, size_t files_count,
                                       fast5_metadata_t **results, int *results_count,
                                       bool verbose) {
   // Show initial progress bar
-  display_progress(0, (int)files_count, verbose);
+  display_progress_simple(0, (int)files_count, verbose, "analyzing Fast5 files");
   
   // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
@@ -214,7 +192,7 @@ static void process_files_sequentially(char **fast5_files, size_t files_count,
     }
     
     // Update progress bar
-    display_progress((int)(i + 1), (int)files_count, verbose);
+    display_progress_simple((int)(i + 1), (int)files_count, verbose, "analyzing Fast5 files");
   }
   
   // Complete progress bar and move to next line
