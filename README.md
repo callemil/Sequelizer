@@ -10,3 +10,10 @@
 
 It's for figuring out xNA
 
+```bash
+# Build Sequelizer
+sequelizer % mkdir build && cd build
+sequelizer/build cmake .. && cmake --build .
+```
+
+
