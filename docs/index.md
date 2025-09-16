@@ -24,11 +24,9 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
 # Build Sequelizer
 mkdir build && cd build
 cmake .. && cmake --build .
-
 # Analyze Fast5 files
 ./sequelizer fast5 data.fast5
 ./sequelizer fast5 /path/to/dataset/ --recursive --verbose
-
 # Extract raw signals
 ./sequelizer convert data.fast5 --to raw
 ./sequelizer convert /path/to/dataset/ --to raw --recursive --all
@@ -59,10 +57,8 @@ Comprehensive Fast5 file metadata extraction and validation.
 ```bash
 # Single file analysis
 ./sequelizer fast5 data.fast5
-
 # Dataset analysis with full details
 ./sequelizer fast5 /path/to/dataset/ --recursive --verbose
-
 # Debug problematic files
 ./sequelizer fast5 debug problematic.fast5
 ```
