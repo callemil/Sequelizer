@@ -12,11 +12,11 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
   <img alt="sequelizer" src="sequelizer.png" width="20%" height="20%">
 </picture>
 
-**Open-source C toolkit for DNA sequence analysis and nanopore data processing**
-
----
+<p><strong>Open-source C toolkit for DNA sequence analysis and nanopore data processing</strong></p>
 
 </div>
+
+---
 
 ## Quick Start
 
