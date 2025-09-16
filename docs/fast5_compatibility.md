@@ -1,3 +1,9 @@
+---
+layout: default
+title: Fast5 Compatibility
+description: Comprehensive guide to Fast5 file format support, compatibility testing, and troubleshooting in Sequelizer
+---
+
 # Fast5 Compatibility Guide
 
 Comprehensive guide to Fast5 file format support, compatibility testing, and troubleshooting in Sequelizer.

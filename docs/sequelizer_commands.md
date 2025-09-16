@@ -1,3 +1,9 @@
+---
+layout: default
+title: Commands Reference
+description: Complete usage guide for all Sequelizer subcommands with detailed examples and workflows
+---
+
 # Sequelizer Commands Reference
 
 Complete usage guide for all Sequelizer subcommands with detailed examples and workflows.

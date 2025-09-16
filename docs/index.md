@@ -1,3 +1,9 @@
+---
+layout: default
+title: Sequelizer Documentation
+description: Open-source C toolkit for DNA sequence analysis and nanopore data processing
+---
+
 # Sequelizer Documentation
 
 <div align="center">
