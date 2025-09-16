@@ -10,8 +10,6 @@
 
 ---
 
-*Built as the open-source core of Ciren, sharing fundamental libraries while Ciren adds performance enhancements and advanced features.*
-
 </div>
 
 ## Quick Start
@@ -32,7 +30,7 @@ cmake .. && cmake --build .
 
 ## What is Sequelizer?
 
-Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysis with a focus on Fast5 file processing and signal extraction. It provides robust, efficient tools for:
+Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysis. It provides robust, efficient tools for:
 
 - **Fast5 file analysis** - Comprehensive metadata extraction and format validation
 - **Signal conversion** - Raw signal extraction for downstream analysis  
@@ -41,11 +39,11 @@ Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysi
 
 ### Key Features
 
-- ✅ **Robust Fast5 support** - Handles standard and non-standard file formats with intelligent fallback detection
-- ✅ **Minimal dependencies** - Only requires HDF5 and CMake for maximum portability
-- ✅ **High performance** - Efficient metadata-only processing, memory-conscious design
-- ✅ **Clean architecture** - Modular subcommand design for easy extension
-- ✅ **Battle-tested** - Validated against real-world nanopore datasets
+- **Robust Fast5 support** - Handles standard and non-standard file formats with intelligent fallback detection
+- **Minimal dependencies** - Only requires HDF5 and CMake for maximum portability
+- **High performance** - Efficient metadata-only processing, memory-conscious design
+- **Clean architecture** - Modular subcommand design for easy extension
+- **Battle-tested** - Validated against real-world nanopore datasets
 
 ## Core Commands
 
