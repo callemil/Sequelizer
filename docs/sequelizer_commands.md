@@ -184,7 +184,6 @@ for dir in run_*/; do
     echo "Processing $dir"
     ./sequelizer fast5 "$dir" --recursive > "${dir%/}_analysis.txt"
 done
-
 # Generate summary reports
 ./sequelizer fast5 all_runs/ --recursive --verbose > comprehensive_report.txt
 # Debug specific file types

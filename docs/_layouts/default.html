@@ -103,6 +103,7 @@
             color: var(--text-color);
             border-bottom: 2px solid var(--primary-color);
             padding-bottom: 0.5rem;
+            scroll-margin-top: 80px; /* Offset for sticky header */
         }
         
         h3 {
@@ -110,6 +111,7 @@
             font-weight: 600;
             margin: 0.75rem 0 0.5rem 0;
             color: var(--text-color);
+            scroll-margin-top: 80px; /* Offset for sticky header */
         }
         
         h4 {
@@ -117,6 +119,7 @@
             font-weight: 600;
             margin: 0.5rem 0 0.25rem 0;
             color: var(--text-color);
+            scroll-margin-top: 80px; /* Offset for sticky header */
         }
         
         p {
@@ -361,6 +364,7 @@
     <footer>
         <div class="container">
             <p>&copy; {{ 'now' | date: "%Y" }} Sequelizer Project. Open-source C toolkit for nanopore data analysis.</p>
+            <p>Developed by <a href="https://sequentialmachines.com" target="_blank">Sequential Machines</a></p>
         </div>
     </footer>
 </body>
