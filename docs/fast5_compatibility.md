@@ -141,7 +141,6 @@ if (H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT)) {
 ```bash
 # Show detailed HDF5 structure
 ./sequelizer fast5 debug problematic_file.fast5
-
 # Debug with verbose metadata extraction
 ./sequelizer fast5 debug problematic_file.fast5 --verbose
 ```
@@ -168,7 +167,6 @@ Missing standard attributes:                      # ← Compatibility notes
 ```bash
 # Solution: Use debug mode to examine structure
 ./sequelizer fast5 debug failing_file.fast5
-
 # Check if file is actually HDF5/Fast5
 file failing_file.fast5
 h5dump -H failing_file.fast5
@@ -178,7 +176,6 @@ h5dump -H failing_file.fast5
 ```bash
 # Solution: Check for non-standard read naming
 ./sequelizer fast5 debug confusing_file.fast5
-
 # Look for alternative group structures in debug output
 ```
 
@@ -193,7 +190,6 @@ ls -la problematic_file.fast5
 ```bash
 # Solution: Use recursive mode for efficiency
 ./sequelizer fast5 large_dataset/ --recursive
-
 # For very large datasets, consider batch processing
 find large_dataset/ -name "*.fast5" | head -100 | xargs -I {} ./sequelizer fast5 {}
 ```
@@ -202,13 +198,10 @@ find large_dataset/ -name "*.fast5" | head -100 | xargs -I {} ./sequelizer fast5
 ```bash
 # Step 1: Quick validation scan
 ./sequelizer fast5 dataset/ --recursive 2> validation_errors.log
-
 # Step 2: Examine any errors
 cat validation_errors.log
-
 # Step 3: Debug specific problematic files
 ./sequelizer fast5 debug $(grep "Failed" validation_errors.log | cut -d: -f1)
-
 # Step 4: Verify successful processing count
 ./sequelizer fast5 dataset/ --recursive | grep -c "Format:"
 ```

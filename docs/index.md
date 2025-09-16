@@ -71,7 +71,6 @@ Extract raw signals from Fast5 files for downstream analysis.
 ```bash
 # Convert single file to raw signals
 ./sequelizer convert data.fast5 --to raw
-
 # Batch convert with all reads
 ./sequelizer convert /path/to/dataset/ --to raw --recursive --all --output signals/
 ```
@@ -99,11 +98,9 @@ Extract raw signals from Fast5 files for downstream analysis.
 ```bash
 # Install dependencies
 brew install hdf5
-
 # Build Sequelizer
 mkdir build && cd build
 cmake .. && cmake --build .
-
 # Executable: build/sequelizer
 ```
 
@@ -111,10 +108,8 @@ cmake .. && cmake --build .
 ```bash
 # Ubuntu/Debian
 sudo apt-get install libhdf5-dev cmake
-
 # CentOS/RHEL  
 sudo yum install hdf5-devel cmake
-
 # Build
 mkdir build && cd build
 cmake .. && cmake --build .
@@ -143,10 +138,8 @@ src/
 ```c
 // Fast5 file discovery
 char **find_fast5_files(const char *path, bool recursive, int *count);
-
 // Metadata extraction
 fast5_metadata_t *read_fast5_metadata(const char *filename, int *count);
-
 // Format detection (automatic and robust)
 fast5_format_t detect_fast5_format(hid_t file_id);
 ```
@@ -164,10 +157,8 @@ Adding new subcommands follows a simple pattern:
 ```bash
 # Generate file lists for processing
 ./sequelizer fast5 dataset/ --recursive > file_list.txt
-
 # Extract signals for analysis
 ./sequelizer convert dataset/ --to raw --recursive --all -o signals/
-
 # Validate files before processing
 ./sequelizer fast5 dataset/ --recursive 2> validation.log
 ```
@@ -178,7 +169,6 @@ Sequelizer serves as the open-source foundation for Ciren:
 ```bash
 # Use Sequelizer for initial analysis
 ./sequelizer fast5 dataset/ --recursive --verbose
-
 # Use Ciren for advanced features
 ../ciren/build/ciren fast5 dataset/ --format json --enhanced-stats
 ```
@@ -195,10 +185,8 @@ Sequelizer has been validated against real-world nanopore datasets:
 ```bash
 # SquiggleFilter project data
 ./sequelizer fast5 /path/to/SquiggleFilter/data/lambda/fast5/ --recursive
-
 # slow5tools test data  
 ./sequelizer fast5 /path/to/slow5tools/test/data --recursive
-
 # Various Oxford Nanopore formats
 # - Standard multi-read Fast5
 # - Legacy single-read Fast5  
@@ -241,13 +229,10 @@ Sequelizer is open-source software. See [LICENSE](../LICENSE) for details.
 ```bash
 # Analyze a dataset
 ./sequelizer fast5 /path/to/data/ --recursive --verbose
-
 # Extract all signals from multi-read files  
 ./sequelizer convert /path/to/data/ --to raw --all --recursive -o signals/
-
 # Debug a problematic file
 ./sequelizer fast5 debug problem_file.fast5
-
 # Get help for any command
 ./sequelizer <command> --help
 ```

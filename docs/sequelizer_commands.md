@@ -5,21 +5,31 @@ description: Complete usage guide for all Sequelizer subcommands with detailed e
 ---
 
 # Sequelizer Commands Reference
-
 Complete usage guide for all Sequelizer subcommands with detailed examples and workflows.
 
-## sequelizer fast5 - Fast5 File Analysis
+## Table of Contents
 
+- [sequelizer fast5 - Fast5 File Analysis](#sequelizer-fast5---fast5-file-analysis)
+- [sequelizer convert - Fast5 Format Conversion](#sequelizer-convert---fast5-format-conversion)
+- [Command-Line Options](#command-line-options)
+- [Output Examples](#output-examples)
+- [Workflow Patterns](#workflow-patterns)
+- [Error Handling Examples](#error-handling-examples)
+- [Performance Guidelines](#performance-guidelines)
+- [Integration with Other Tools](#integration-with-other-tools)
+- [Future Subcommands](#future-subcommands)
+
+---
+
+## sequelizer fast5 - Fast5 File Analysis
 **Primary command for Fast5 file metadata extraction and analysis.**
 
 ### Basic Usage
 ```bash
 # Single file analysis (default: info mode)
 ./sequelizer fast5 data.fast5
-
 # Display help for fast5 subcommand
 ./sequelizer fast5 --help
-
 # Verbose output with detailed read information
 ./sequelizer fast5 data.fast5 --verbose
 ```
@@ -28,10 +38,8 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ```bash
 # Analyze directory (non-recursive)
 ./sequelizer fast5 /path/to/fast5_files/
-
 # Recursive directory analysis (RECOMMENDED for datasets)
 ./sequelizer fast5 /path/to/fast5_files/ --recursive
-
 # Recursive with verbose output
 ./sequelizer fast5 /path/to/fast5_files/ --recursive --verbose
 ```
@@ -40,10 +48,8 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ```bash
 # Debug single file - shows detailed HDF5 structure
 ./sequelizer fast5 debug data.fast5
-
 # Debug problematic files for troubleshooting
 ./sequelizer fast5 debug problematic_file.fast5
-
 # Debug with verbose output
 ./sequelizer fast5 debug data.fast5 --verbose
 ```
@@ -52,10 +58,8 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ```bash
 # SquiggleFilter project data
 ./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
-
 # slow5tools test data
 ./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose
-
 # Single file from dataset
 ./sequelizer fast5 /path/to/dataset/specific_file.fast5 --verbose
 ```
@@ -68,7 +72,6 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ./sequelizer
 ./sequelizer --help
 ./sequelizer help
-
 # Version information
 ./sequelizer --version
 ```
@@ -80,7 +83,6 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ./sequelizer fast5 debug <input>        # Debug mode with HDF5 structure
 ./sequelizer fast5 <input> --verbose    # Detailed output
 ./sequelizer fast5 <input> --recursive  # Process directories recursively
-
 # Combined options
 ./sequelizer fast5 /path/to/data/ --recursive --verbose
 ./sequelizer fast5 debug /path/to/data/file.fast5 --verbose
@@ -157,10 +159,8 @@ Total signals: 3700 samples
 ```bash
 # Step 1: Quick overview of dataset
 ./sequelizer fast5 /path/to/sequencing_run/ --recursive
-
 # Step 2: Detailed analysis of interesting files
 ./sequelizer fast5 /path/to/sequencing_run/subset/ --recursive --verbose
-
 # Step 3: Debug problematic files
 ./sequelizer fast5 debug /path/to/sequencing_run/problematic_file.fast5
 ```
@@ -169,13 +169,10 @@ Total signals: 3700 samples
 ```bash
 # Test basic functionality
 ./sequelizer fast5 test_data.fast5
-
 # Test error handling
 ./sequelizer fast5 nonexistent_file.fast5
-
 # Test directory processing
 ./sequelizer fast5 test_directory/ --recursive
-
 # Test debug capabilities
 ./sequelizer fast5 debug test_data.fast5
 ```
@@ -190,7 +187,6 @@ done
 
 # Generate summary reports
 ./sequelizer fast5 all_runs/ --recursive --verbose > comprehensive_report.txt
-
 # Debug specific file types
 find /path/to/data -name "*.fast5" -exec ./sequelizer fast5 debug {} \;
 ```
@@ -202,15 +198,12 @@ find /path/to/data -name "*.fast5" -exec ./sequelizer fast5 debug {} \;
 # File not found
 $ ./sequelizer fast5 missing.fast5
 Error: Cannot access file: missing.fast5
-
 # Invalid Fast5 file
 $ ./sequelizer fast5 corrupted.fast5
 Warning: Failed to read Fast5 metadata from corrupted.fast5
-
 # Permission denied
 $ ./sequelizer fast5 /restricted/data.fast5
 Error: Permission denied: /restricted/data.fast5
-
 # Empty directory
 $ ./sequelizer fast5 empty_directory/ --recursive
 No Fast5 files found in directory: empty_directory/
@@ -220,13 +213,10 @@ No Fast5 files found in directory: empty_directory/
 ```bash
 # Use debug mode for detailed diagnostics
 ./sequelizer fast5 debug problematic.fast5
-
 # Check if file is actually Fast5 format
 file problematic.fast5
-
 # Verify HDF5 structure manually
 h5dump -n problematic.fast5
-
 # Test with minimal processing
 ./sequelizer fast5 problematic.fast5  # (without --verbose)
 ```
@@ -248,10 +238,8 @@ h5dump -n problematic.fast5
 ```bash
 # For exploration: start with non-verbose
 ./sequelizer fast5 unknown_dataset/ --recursive
-
 # For analysis: add verbose for details
 ./sequelizer fast5 known_dataset/ --recursive --verbose
-
 # For troubleshooting: use debug mode
 ./sequelizer fast5 debug problem_files/
 ```
@@ -262,10 +250,8 @@ h5dump -n problematic.fast5
 ```bash
 # Generate file lists for downstream processing
 ./sequelizer fast5 dataset/ --recursive | grep "multi-read" > multi_read_files.txt
-
 # Extract metadata for analysis
 ./sequelizer fast5 dataset/ --recursive --verbose > dataset_metadata.txt
-
 # Validate file integrity before processing
 ./sequelizer fast5 dataset/ --recursive 2> validation_errors.log
 ```
@@ -274,7 +260,6 @@ h5dump -n problematic.fast5
 ```bash
 # Use Sequelizer for initial analysis
 ./sequelizer fast5 dataset/ --recursive --verbose
-
 # Then use Ciren for advanced analysis
 ../ciren/build/ciren fast5 dataset/ --recursive --format json
 ```
@@ -287,10 +272,8 @@ h5dump -n problematic.fast5
 ```bash
 # Convert single file to raw signals (default: 3 reads for multi-read files)
 ./sequelizer convert data.fast5 --to raw
-
 # Display help for convert subcommand
 ./sequelizer convert --help
-
 # Convert with verbose output
 ./sequelizer convert data.fast5 --to raw --verbose
 ```
@@ -300,10 +283,8 @@ h5dump -n problematic.fast5
 # Convert to raw signals with specific output file/directory
 ./sequelizer convert data.fast5 --to raw -o output.txt
 ./sequelizer convert data.fast5 --to raw --output signals/
-
 # Extract all reads (for multi-read files)
 ./sequelizer convert multi_read.fast5 --to raw --all
-
 # Convert all reads with output directory
 ./sequelizer convert multi_read.fast5 --to raw --all -o signals/
 ```
@@ -312,10 +293,8 @@ h5dump -n problematic.fast5
 ```bash
 # Convert directory (non-recursive)
 ./sequelizer convert /path/to/fast5_files/ --to raw
-
 # Recursive directory conversion (RECOMMENDED for datasets)
 ./sequelizer convert /path/to/fast5_files/ --to raw --recursive
-
 # Recursive with verbose output and output directory
 ./sequelizer convert /path/to/fast5_files/ --to raw --recursive --verbose -o converted/
 ```
@@ -324,10 +303,8 @@ h5dump -n problematic.fast5
 ```bash
 # SquiggleFilter project data - extract all raw signals
 ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --to raw --recursive --all -o lambda_signals/
-
 # Single multi-read file with all reads
 ./sequelizer convert FAL11227_multi.fast5 --to raw --all -o signals/
-
 # Single-read file conversion
 ./sequelizer convert read_ch271_file66.fast5 --to raw -o read271_signals.txt
 ```
@@ -338,17 +315,13 @@ h5dump -n problematic.fast5
 ```bash
 # Format selection
 ./sequelizer convert <input> --to raw         # Extract raw signal data (ONLY supported format)
-
 # Output specification
 ./sequelizer convert <input> --to raw -o <output>     # Short form
 ./sequelizer convert <input> --to raw --output <output> # Long form
-
 # Read selection (multi-read files only)
 ./sequelizer convert <input> --to raw --all    # Extract all reads (default: first 3)
-
 # Directory processing
 ./sequelizer convert <input> --to raw --recursive  # Process directories recursively
-
 # Verbosity
 ./sequelizer convert <input> --to raw --verbose    # Detailed output during conversion
 ```
@@ -360,7 +333,6 @@ h5dump -n problematic.fast5
 # Without -o flag: automatic naming using channel and read numbers
 ./sequelizer convert read_ch271_file66.fast5 --to raw
 # Output: read_ch271_rd66.txt
-
 # With -o flag: use specified filename
 ./sequelizer convert read_ch271_file66.fast5 --to raw -o my_signal.txt
 # Output: my_signal.txt
@@ -371,7 +343,6 @@ h5dump -n problematic.fast5
 # Without -o flag: basename with channel/read suffixes
 ./sequelizer convert FAL11227_multi.fast5 --to raw
 # Output: FAL11227_multi_read_ch126_rd1.txt, FAL11227_multi_read_ch234_rd2.txt, etc.
-
 # With -o directory: clean naming in specified directory
 ./sequelizer convert FAL11227_multi.fast5 --to raw -o signals/
 # Output: signals/read_ch126_rd1.txt, signals/read_ch234_rd2.txt, etc.
@@ -414,10 +385,8 @@ Processing file: dataset/file2.fast5
 ```bash
 # Step 1: Extract raw signals from experimental data
 ./sequelizer convert experimental_run/ --to raw --recursive --all -o raw_signals/
-
 # Step 2: Process specific files of interest
 ./sequelizer convert interesting_file.fast5 --to raw --verbose -o analysis/
-
 # Step 3: Batch convert multiple datasets
 for dataset in run_*/; do
     ./sequelizer convert "$dataset" --to raw --recursive -o "signals_${dataset%/}/"
@@ -428,10 +397,8 @@ done
 ```bash
 # Test single file conversion
 ./sequelizer convert test_data.fast5 --to raw
-
 # Test multi-read extraction
 ./sequelizer convert multi_test.fast5 --to raw --all --verbose
-
 # Test directory processing
 ./sequelizer convert test_directory/ --to raw --recursive
 ```
@@ -440,10 +407,8 @@ done
 ```bash
 # Extract signals for downstream basecalling
 ./sequelizer convert raw_data/ --to raw --recursive --all -o signals/
-
 # Generate signal files for analysis tools
 find dataset/ -name "*.fast5" -exec ./sequelizer convert {} --to raw -o processed/ \;
-
 # Batch process with progress tracking
 ./sequelizer convert large_dataset/ --to raw --recursive --verbose > conversion.log
 ```
@@ -455,15 +420,12 @@ find dataset/ -name "*.fast5" -exec ./sequelizer convert {} --to raw -o processe
 # File not found
 $ ./sequelizer convert missing.fast5 --to raw
 Error: Cannot access file: missing.fast5
-
 # Invalid Fast5 file
 $ ./sequelizer convert corrupted.fast5 --to raw
 Warning: Cannot read metadata from file: corrupted.fast5
-
 # Permission denied
 $ ./sequelizer convert /restricted/data.fast5 --to raw
 Error: Permission denied: /restricted/data.fast5
-
 # Output directory creation failure
 $ ./sequelizer convert data.fast5 --to raw -o /readonly/output/
 Warning: Cannot create directory: /readonly/output/
@@ -498,10 +460,8 @@ Warning: Cannot create directory: /readonly/output/
 ```bash
 # For small datasets: process all at once
 ./sequelizer convert small_dataset/ --to raw --recursive --all
-
 # For large datasets: use verbose mode for progress tracking
 ./sequelizer convert large_dataset/ --to raw --recursive --verbose
-
 # For development: test with limited reads first
 ./sequelizer convert test_files/ --to raw --recursive  # (default: first 3 reads)
 ```
@@ -513,10 +473,8 @@ Warning: Cannot create directory: /readonly/output/
 # Extract signals for custom analysis scripts
 ./sequelizer convert dataset/ --to raw --recursive -o signals/
 python analyze_signals.py signals/
-
 # Generate training data for machine learning
 ./sequelizer convert training_set/ --to raw --all --recursive -o ml_data/
-
 # Prepare signals for visualization
 ./sequelizer convert interesting_reads/ --to raw -o plots/
 gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
@@ -526,7 +484,6 @@ gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 ```bash
 # Use Sequelizer for signal extraction
 ./sequelizer convert dataset/ --to raw --recursive -o signals/
-
 # Then use Ciren for advanced analysis
 ../ciren/build/ciren bcall signals/ --model-path models/
 ```
@@ -537,7 +494,6 @@ gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 ```bash
 # Sequence generation (in development)
 ./sequelizer seqgen [options]
-
 # Additional Fast5 operations (future)
 ./sequelizer fast5 extract <input> --reads read_001,read_002
 ./sequelizer fast5 validate <input>
