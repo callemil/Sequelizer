@@ -14,7 +14,6 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 - [Command-Line Options](#command-line-options)
 - [Output Examples](#output-examples)
 - [Workflow Patterns](#workflow-patterns)
-- [Error Handling Examples](#error-handling-examples)
 - [Performance Guidelines](#performance-guidelines)
 - [Integration with Other Tools](#integration-with-other-tools)
 - [Future Subcommands](#future-subcommands)
@@ -47,11 +46,11 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ### Debug Mode
 ```bash
 # Debug single file - shows detailed HDF5 structure
-./sequelizer fast5 debug data.fast5
+./sequelizer fast5 data.fast5 --debug
 # Debug problematic files for troubleshooting
-./sequelizer fast5 debug problematic_file.fast5
+./sequelizer fast5 problematic_file.fast5 --debug
 # Debug with verbose output
-./sequelizer fast5 debug data.fast5 --verbose
+./sequelizer fast5 data.fast5 --verbose --debug
 ```
 
 ### Real Dataset Examples
@@ -80,77 +79,98 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ```bash
 # Basic operations
 ./sequelizer fast5 <input>              # Default info mode
-./sequelizer fast5 debug <input>        # Debug mode with HDF5 structure
+./sequelizer fast5 <input> --debug      # Debug mode with HDF5 structure
 ./sequelizer fast5 <input> --verbose    # Detailed output
 ./sequelizer fast5 <input> --recursive  # Process directories recursively
 # Combined options
 ./sequelizer fast5 /path/to/data/ --recursive --verbose
-./sequelizer fast5 debug /path/to/data/file.fast5 --verbose
+./sequelizer fast5 /path/to/data/file.fast5 --verbose --debug
 ```
 
 ## Output Examples
 
-### Standard Info Mode
+### Standard Info Mode on One File
 ```
-File: data.fast5
-Format: multi-read
-Reads: 3
-File size: 245.2 KB
+[████████████████████████████████████████] 100% (1/1)
 
-Read summary:
-- Read lengths: 1000-1500 samples
-- Sample rates: 4000 Hz
-- Total duration: 0.75 seconds
+Fast5 File: /some/set/of/directories/some_file.fast5
+=====================================
+File size: 4.71 MB
+Format: Multi-read
+Reads: 250
+Sample rate: 4000 Hz
+Signal statistics:
+  Total samples: 2525348
+  Average length: 10101 samples
+  Range: 2152 - 39504 samples
+  Total duration: 631.3 seconds
+  Average duration: 2.5 seconds
+
+Showing first 3 reads (use --verbose for all):
+  Read 1: 01d9d672-8f2f-4b97-a81f-c9ee8c898ade (8518 samples)
+  Read 2: 0203a671-1dd3-43f6-85b1-7d6d5b3b13e2 (3094 samples)
+  Read 3: 073e5b10-48d5-4b89-8268-708c601365bc (6169 samples)
+  ... and 247 more reads
+
+Sequelizer Fast5 Dataset Analysis Summary
+=========================================
+Files processed: 1/1 successful
+Total file size: 4.7 MB
+Total reads: 250
+Signal statistics:
+  Total samples: 2525348
+  Average length: 10101 samples
+  Range: 2152 - 39504 samples
+  Average bits per sample: 14.93
+  Total duration: 10.5 minutes
+  Avg duration: 2.5 seconds
+Processing time: 0.04 seconds
 ```
 
-### Verbose Mode Output
+### Standard Info Monde on a Directory
 ```
-File: data.fast5
-Format: multi-read
-Reads: 3
-File size: 245.2 KB
+[████████████████████████████████████████] 100% (86/86)
 
-Read details:
-Read 1: read_001
-  - Length: 1000 samples
-  - Duration: 0.25 seconds
-  - Sample rate: 4000 Hz
-  - Channel: 126
+Sequelizer Fast5 Dataset Analysis Summary
+=========================================
+Files processed: 86/86 successful
+Total file size: 744.8 MB
+Total reads: 21500
+Signal statistics:
+  Total samples: 491461379
+  Average length: 22859 samples
+  Range: 1913 - 355054 samples
+  Average bits per sample: 12.12
+  Total duration: 2047.8 minutes
+  Avg duration: 5.7 seconds
+Processing time: 2.47 seconds
+```
 
-Read 2: read_002
-  - Length: 1200 samples
-  - Duration: 0.30 seconds
-  - Sample rate: 4000 Hz
-  - Channel: 234
 
-Read 3: read_003
-  - Length: 1500 samples
-  - Duration: 0.375 seconds
-  - Sample rate: 4000 Hz
-  - Channel: 445
+### Looking Recursively Through Directories (some files fail)
+```
+[████████████████████████░░░░░░░░░░░░░░░░] 62% (48/77)sequelizer: Failed to open Fast5 file: /a/directory/a_file.fast5
+[████████████████████████████░░░░░░░░░░░░] 71% (55/77)sequelizer: Failed to open Fast5 file: /another/directory/some_other_file.fast5
+[████████████████████████████████████████] 100% (77/77)
+
+Sequelizer Fast5 Dataset Analysis Summary
+=========================================
+Files processed: 72/77 successful (5 failed)
+Total file size: 88.1 MB
+Total reads: 1105
+Signal statistics:
+  Total samples: 56749637
+  Average length: 51357 samples
+  Range: 4479 - 376770 samples
+  Average bits per sample: 12.42
+  Total duration: 321.4 minutes
+  Avg duration: 17.5 seconds
+Processing time: 0.03 seconds
 ```
 
 ### Debug Mode Output
 ```
-File: data.fast5
-Format: multi-read (detected via read_* groups)
-HDF5 structure:
-/
-├── read_001/
-│   ├── Raw/Signal (dataset: 1000 elements)
-│   ├── channel_id/ (group)
-│   └── tracking_id/ (group)
-├── read_002/
-│   ├── Raw/Signal (dataset: 1200 elements)
-│   ├── channel_id/ (group)
-│   └── tracking_id/ (group)
-└── read_003/
-    ├── Raw/Signal (dataset: 1500 elements)
-    ├── channel_id/ (group)
-    └── tracking_id/ (group)
-
-Reads: 3
-Total signals: 3700 samples
+# todo
 ```
 
 ## Workflow Patterns
@@ -161,20 +181,6 @@ Total signals: 3700 samples
 ./sequelizer fast5 /path/to/sequencing_run/ --recursive
 # Step 2: Detailed analysis of interesting files
 ./sequelizer fast5 /path/to/sequencing_run/subset/ --recursive --verbose
-# Step 3: Debug problematic files
-./sequelizer fast5 debug /path/to/sequencing_run/problematic_file.fast5
-```
-
-### Development Testing Workflow
-```bash
-# Test basic functionality
-./sequelizer fast5 test_data.fast5
-# Test error handling
-./sequelizer fast5 nonexistent_file.fast5
-# Test directory processing
-./sequelizer fast5 test_directory/ --recursive
-# Test debug capabilities
-./sequelizer fast5 debug test_data.fast5
 ```
 
 ### Batch Processing Workflow
@@ -186,38 +192,6 @@ for dir in run_*/; do
 done
 # Generate summary reports
 ./sequelizer fast5 all_runs/ --recursive --verbose > comprehensive_report.txt
-# Debug specific file types
-find /path/to/data -name "*.fast5" -exec ./sequelizer fast5 debug {} \;
-```
-
-## Error Handling Examples
-
-### Common Error Scenarios
-```bash
-# File not found
-$ ./sequelizer fast5 missing.fast5
-Error: Cannot access file: missing.fast5
-# Invalid Fast5 file
-$ ./sequelizer fast5 corrupted.fast5
-Warning: Failed to read Fast5 metadata from corrupted.fast5
-# Permission denied
-$ ./sequelizer fast5 /restricted/data.fast5
-Error: Permission denied: /restricted/data.fast5
-# Empty directory
-$ ./sequelizer fast5 empty_directory/ --recursive
-No Fast5 files found in directory: empty_directory/
-```
-
-### Debugging Problematic Files
-```bash
-# Use debug mode for detailed diagnostics
-./sequelizer fast5 debug problematic.fast5
-# Check if file is actually Fast5 format
-file problematic.fast5
-# Verify HDF5 structure manually
-h5dump -n problematic.fast5
-# Test with minimal processing
-./sequelizer fast5 problematic.fast5  # (without --verbose)
 ```
 
 ## Performance Guidelines
@@ -240,7 +214,7 @@ h5dump -n problematic.fast5
 # For analysis: add verbose for details
 ./sequelizer fast5 known_dataset/ --recursive --verbose
 # For troubleshooting: use debug mode
-./sequelizer fast5 debug problem_files/
+./sequelizer fast5 problem_files/ --debug
 ```
 
 ## Integration with Other Tools
@@ -269,7 +243,7 @@ h5dump -n problematic.fast5
 
 ### Basic Usage
 ```bash
-# Convert single file to raw signals (default: 3 reads for multi-read files)
+# Convert single file to raw (default: 3 reads for multi-read files) named read_ch<channel num>_rd<read num>.txt
 ./sequelizer convert data.fast5 --to raw
 # Display help for convert subcommand
 ./sequelizer convert --help
@@ -313,16 +287,16 @@ h5dump -n problematic.fast5
 #### Convert Subcommand Options
 ```bash
 # Format selection
-./sequelizer convert <input> --to raw         # Extract raw signal data (ONLY supported format)
+./sequelizer convert <input> --to raw                   # Extract raw signal data (ONLY supported format)
 # Output specification
-./sequelizer convert <input> --to raw -o <output>     # Short form
+./sequelizer convert <input> --to raw -o <output>       # Short form
 ./sequelizer convert <input> --to raw --output <output> # Long form
 # Read selection (multi-read files only)
-./sequelizer convert <input> --to raw --all    # Extract all reads (default: first 3)
+./sequelizer convert <input> --to raw --all             # Extract all reads (default: first 3)
 # Directory processing
-./sequelizer convert <input> --to raw --recursive  # Process directories recursively
+./sequelizer convert <input> --to raw --recursive       # Process directories recursively
 # Verbosity
-./sequelizer convert <input> --to raw --verbose    # Detailed output during conversion
+./sequelizer convert <input> --to raw --verbose         # Detailed output during conversion
 ```
 
 ### Output File Naming

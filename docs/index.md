@@ -60,7 +60,7 @@ Comprehensive Fast5 file metadata extraction and validation.
 # Dataset analysis with full details
 ./sequelizer fast5 /path/to/dataset/ --recursive --verbose
 # Debug problematic files
-./sequelizer fast5 debug problematic.fast5
+./sequelizer fast5 problematic.fast5 --debug
 ```
 
 **[→ Complete Fast5 command guide](sequelizer_commands.md#sequelizer-fast5---fast5-file-analysis)**
@@ -232,7 +232,7 @@ Sequelizer is open-source software. See [LICENSE](../LICENSE) for details.
 # Extract all signals from multi-read files  
 ./sequelizer convert /path/to/data/ --to raw --all --recursive -o signals/
 # Debug a problematic file
-./sequelizer fast5 debug problem_file.fast5
+./sequelizer fast5 problem_file.fast5 --debug
 # Get help for any command
 ./sequelizer <command> --help
 ```
