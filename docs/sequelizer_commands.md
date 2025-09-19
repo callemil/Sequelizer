@@ -53,16 +53,6 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 ./sequelizer fast5 data.fast5 --verbose --debug
 ```
 
-### Real Dataset Examples
-```bash
-# SquiggleFilter project data
-./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
-# slow5tools test data
-./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose
-# Single file from dataset
-./sequelizer fast5 /path/to/dataset/specific_file.fast5 --verbose
-```
-
 ## Command-Line Options
 
 ### Global Options
