@@ -12,6 +12,7 @@
 // ./sequelizer convert /Users/seb/Research/Scraps/scrappie_2016_11_28_73e3/reads/read_ch228_file118.fast5 --to raw -o signal.txt
 // ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/FAL11227_e2243762ddcab66a4299cc8b21f76b3f66c41f01_0.fast5 --to raw -o signals/
 // ./sequelizer convert /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/FAL11227_e2243762ddcab66a4299cc8b21f76b3f66c41f01_0.fast5 --to raw -o signals/ --all
+// ./sequelizer convert /Users/seb/Documents/GitHub/slow5tools/test/data/ --to raw --recursive -o converted/
 
 #include "sequelizer_convert.h"
 #include "core/fast5_io.h"

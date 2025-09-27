@@ -273,11 +273,17 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       display_progress_simple(0, (int)reads_to_process, verbose, "extracting reads");
     }
     
-    if (is_multi_read && file_count == 1 && output_file) {
-      // Single multi-read file with output directory
-      if (create_directory(output_file) != EXIT_SUCCESS) {
-        free_fast5_metadata(metadata, metadata_count);
-        continue;
+    // Create output directory if needed and we're on the first file
+    if (output_file && i == 0) {
+      // Only create directory if:
+      // 1. Multiple files (file_count > 1), OR
+      // 2. Single multi-read file (file_count == 1 && is_multi_read)
+      // Don't create directory for single single-read files (they use exact filename)
+      if (file_count > 1 || (file_count == 1 && is_multi_read)) {
+        if (create_directory(output_file) != EXIT_SUCCESS) {
+          free_fast5_metadata(metadata, metadata_count);
+          continue;
+        }
       }
     }
     
@@ -296,29 +302,43 @@ int extract_raw_signals(char **files, size_t file_count, const char *output_file
       
       // Determine output filename
       char output_filename[512];
-      if (is_multi_read) {
-        if (file_count == 1 && output_file) {
-          // Single file to directory: output_dir/read_ch228_rd123.txt
-          snprintf(output_filename, sizeof(output_filename), "%s/read_ch%s_rd%u.txt", 
-                   output_file, 
-                   metadata[j].channel_number ? metadata[j].channel_number : "unknown",
-                   metadata[j].read_number);
+
+      // Get basename for prefixing when needed
+      const char *basename = strrchr(files[i], '/');
+      basename = basename ? basename + 1 : files[i];
+
+      if (file_count == 1) {
+        // Single file processing
+        if (output_file) {
+          if (is_multi_read) {
+            // Single multi-read file: treat output as directory
+            snprintf(output_filename, sizeof(output_filename), "%s/read_ch%s_rd%u.txt",
+                     output_file,
+                     metadata[j].channel_number ? metadata[j].channel_number : "unknown",
+                     metadata[j].read_number);
+          } else {
+            // Single single-read file: treat output as exact filename
+            snprintf(output_filename, sizeof(output_filename), "%s", output_file);
+          }
         } else {
-          // Multiple files or no output specified: basename_read_ch228_rd123.txt
-          const char *basename = strrchr(files[i], '/');
-          basename = basename ? basename + 1 : files[i];
-          snprintf(output_filename, sizeof(output_filename), "%.*s_read_ch%s_rd%u.txt", 
-                   (int)(strstr(basename, ".fast5") - basename), basename,
+          // No output specified: simple naming
+          snprintf(output_filename, sizeof(output_filename), "read_ch%s_rd%u.txt",
                    metadata[j].channel_number ? metadata[j].channel_number : "unknown",
                    metadata[j].read_number);
         }
       } else {
-        // Single-read file
+        // Multiple file processing: always add filename prefix for traceability
         if (output_file) {
-          snprintf(output_filename, sizeof(output_filename), "%s", output_file);
+          // Multiple files to output directory: output_dir/originalfile_read_ch228_rd123.txt
+          snprintf(output_filename, sizeof(output_filename), "%s/%.*s_read_ch%s_rd%u.txt",
+                   output_file,
+                   (int)(strstr(basename, ".fast5") - basename), basename,
+                   metadata[j].channel_number ? metadata[j].channel_number : "unknown",
+                   metadata[j].read_number);
         } else {
-          // For single-read files without output specified, just use channel/read naming
-          snprintf(output_filename, sizeof(output_filename), "read_ch%s_rd%u.txt", 
+          // Multiple files to current directory: originalfile_read_ch228_rd123.txt
+          snprintf(output_filename, sizeof(output_filename), "%.*s_read_ch%s_rd%u.txt",
+                   (int)(strstr(basename, ".fast5") - basename), basename,
                    metadata[j].channel_number ? metadata[j].channel_number : "unknown",
                    metadata[j].read_number);
         }
