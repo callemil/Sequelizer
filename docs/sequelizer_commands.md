@@ -117,7 +117,7 @@ Signal statistics:
 Processing time: 0.04 seconds
 ```
 
-### Standard Info Monde on a Directory
+### Standard Info Mode on a Directory
 ```
 [████████████████████████████████████████] 100% (86/86)
 
@@ -233,7 +233,9 @@ done
 
 ### Basic Usage
 ```bash
-# Convert single file to raw (default: 3 reads for multi-read files) named read_ch<channel num>_rd<read num>.txt
+# Convert single file to raw (default: 3 reads for multi-read files)
+# NOTE: for single-read files this produces files name: read_ch<channel num>_rd<read num>.txt
+# but for multi-read files this produces files named: <original fast5 files name>_read_ch<channe _num>_rd<read num>.txt
 ./sequelizer convert data.fast5 --to raw
 # Display help for convert subcommand
 ./sequelizer convert --help
@@ -243,13 +245,15 @@ done
 
 ### Output Options
 ```bash
-# Convert to raw signals with specific output file/directory
+# Convert to raw signals with specific output name (note: single-read files interpret output as a file name, not a directory, while multi-read reafiles interpret the output as a directory only)
 ./sequelizer convert data.fast5 --to raw -o output.txt
+# NOTE: currently single read files interpret outputs as file names, so putting "/" in the name (as below) will result in error
 ./sequelizer convert data.fast5 --to raw --output signals/
 # Extract all reads (for multi-read files)
 ./sequelizer convert multi_read.fast5 --to raw --all
 # Convert all reads with output directory
-./sequelizer convert multi_read.fast5 --to raw --all -o signals/
+# NOTE: for multi-read files when you do specify an output, the file names will be read_ch<channel num>_rd<read num>.txt
+./sequelizer convert multi_read.fast5 --to raw --all -o signals
 ```
 
 ### Directory Operations
@@ -313,32 +317,51 @@ done
 
 ### Output Examples
 
-#### Standard Conversion
+#### Single-Read Conversion with Verbose
 ```
-$ ./sequelizer convert data.fast5 --to raw
+$ ./sequelizer convert data.fast5 --to raw --verbose
+Found 1 files to convert
+Output format: raw
+
+Converting 1 files to raw format...
 Processing file: data.fast5
-Wrote 1500 samples to: read_ch271_rd66.txt
+  Wrote 29150 samples to: read_ch228_rd118.txt
 ```
 
-#### Verbose Mode Output
+#### Multi-Read Verbose Mode Output
 ```
 $ ./sequelizer convert multi_read.fast5 --to raw --verbose
+Found 1 files to convert
+Output format: raw
+
 Converting 1 files to raw format...
 Processing file: multi_read.fast5
-  Multi-read file: processing first 3 of 5 reads (use --all for all)
-  Wrote 1000 samples to: multi_read_read_ch126_rd1.txt
-  Wrote 1200 samples to: multi_read_read_ch234_rd2.txt
-  Wrote 1500 samples to: multi_read_read_ch445_rd3.txt
+  Multi-read file: processing first 3 of 250 reads (use --all for all)
+  Wrote 8518 samples to: multi_read_read_ch44_rd26.txt
+  Wrote 3094 samples to: multi_read_read_ch304_rd43.txt
+  Wrote 6169 samples to: multi_read_read_ch477_rd63.txt
 ```
 
 #### Directory Processing Output
 ```
 $ ./sequelizer convert dataset/ --to raw --recursive --verbose
-Converting 15 files to raw format...
-Processing file: dataset/file1.fast5
-  Wrote 1000 samples to: file1_read_ch126_rd1.txt
-Processing file: dataset/file2.fast5
-  Wrote 1200 samples to: file2_read_ch234_rd1.txt
+Found 77 files to convert
+Output format: raw
+
+Converting 77 files to raw format...
+[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 0% (0/77) converting filesProcessing file: dataset/raw/f2s/end_reason_fast5/end_reason_datatype_uint8_t.fast5
+  Wrote 23469 samples to: end_reason_datatype_uint8_t_read_ch11_rd42.txt
+[░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 1% (1/77) converting filesProcessing file: dataset/raw/f2s/end_reason_fast5/end_reason_differnt_key_order.fast5
+  Wrote 5298 samples to: end_reason_differnt_key_order_read_ch341_rd3586.txt
+  Wrote 4479 samples to: end_reason_differnt_key_order_read_ch281_rd11189.txt
+[█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 2% (2/77) converting filesProcessing file: dataset/raw/f2s/end_reason_fast5/end_reason_int32.fast5
+  Wrote 5298 samples to: end_reason_int32_read_ch341_rd3586.txt
+  Wrote 4479 samples to: end_reason_int32_read_ch281_rd11189.txt
+[█░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 3% (3/77) converting filesProcessing file: dataset/raw/f2s/end_reason_fast5/end_reason_new_key.fast5
+  Wrote 5298 samples to: end_reason_new_key_read_ch341_rd3586.txt
+[██░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░] 5% (4/77) converting filesProcessing file: dataset/raw/f2s/end_reason_fast5/end_reason1.fast5
+  Wrote 14567 samples to: end_reason1_read_ch1960_rd13875.txt
+  Wrote 50934 samples to: end_reason1_read_ch1061_rd12263.txt
 ...
 ```
 
