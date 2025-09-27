@@ -94,7 +94,7 @@ if (H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT)) {
 
 ## Compatibility Testing Results
 
-### ✅ Confirmed Working Formats
+### Confirmed Working Formats
 
 **SquiggleFilter Project Data:**
 ```bash
@@ -117,7 +117,7 @@ if (H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT)) {
 - Single-read Fast5 from older MinION runs
 - Mixed datasets with varying compression levels
 
-### ✅ Robustness Features
+### Robustness Features
 
 **Missing Attributes Handling:**
 - Files without `file_type` attribute → Automatic fallback detection
@@ -148,16 +148,16 @@ if (H5Lexists(file_id, "/Raw/Reads", H5P_DEFAULT)) {
 **Debug output interpretation:**
 ```
 File: problematic.fast5
-Format: multi-read (detected via read_* groups)  # ← Detection method shown
+Format: multi-read (detected via read_* groups) # ← Detection method shown
 HDF5 structure:
 / (root)
-├── read_001/                                    # ← Groups discovered
+├── read_001/                                   # ← Groups discovered
 │   ├── Raw/Signal (dataset: 1000 elements)     # ← Signal data found
 │   ├── channel_id/ (group)                     # ← Metadata groups
 │   └── tracking_id/ (group)
 └── file_version (attribute: "2.0")             # ← Attributes present
 
-Missing standard attributes:                      # ← Compatibility notes
+Missing standard attributes:                    # ← Compatibility notes
 - file_type attribute not found (using fallback detection)
 ```
 

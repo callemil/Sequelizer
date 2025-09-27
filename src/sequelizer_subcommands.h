@@ -10,11 +10,13 @@
 #include <stdio.h>
 #include "sequelizer_fast5.h"
 #include "sequelizer_convert.h"
+#include "sequelizer_plot.h"
 
 enum sequelizer_mode {SEQUELIZER_MODE_HELP=0,
                       SEQUELIZER_MODE_SEQGEN,
                       SEQUELIZER_MODE_FAST5,
                       SEQUELIZER_MODE_CONVERT,
+                      SEQUELIZER_MODE_PLOT,
                       SEQUELIZER_MODE_INVALID };
 static const enum sequelizer_mode sequelizer_ncommand = SEQUELIZER_MODE_INVALID;
 
@@ -27,5 +29,6 @@ int main_help_short(void);
 int main_seqgen(int argc, char *argv[]);
 int main_fast5(int argc, char *argv[]);
 int main_convert(int argc, char *argv[]);
+int main_plot(int argc, char *argv[]);
 
 #endif //SEQUELIZER_SUBCOMMANDS_H

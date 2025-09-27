@@ -41,6 +41,9 @@ int main(int argc, char *argv[]) {
     case SEQUELIZER_MODE_CONVERT:
       ret = main_convert(argc - 1, argv + 1);
       break;
+    case SEQUELIZER_MODE_PLOT:
+      ret = main_plot(argc - 1, argv + 1);
+      break;
     case SEQUELIZER_MODE_HELP:
       ret = main_help_short();
       break;

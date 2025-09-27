@@ -22,6 +22,7 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 
 ## sequelizer fast5 - Fast5 File Analysis
 **Primary command for Fast5 file metadata extraction and analysis.**
+
 Use this to skim across your fast5 directories and get some basic stats on the fast5 contents.
 ### Basic Usage
 ```bash
@@ -41,7 +42,6 @@ Use this to skim across your fast5 directories and get some basic stats on the f
 # Recursive with verbose output
 ./sequelizer fast5 /path/to/fast5_files/ --recursive --verbose
 ```
-
 ### Debug Mode
 ```bash
 # Debug single file - shows detailed HDF5 structure
@@ -53,7 +53,6 @@ Use this to skim across your fast5 directories and get some basic stats on the f
 ```
 
 ## Command-Line Options
-
 ### Global Options
 ```bash
 # Display main help
@@ -63,7 +62,6 @@ Use this to skim across your fast5 directories and get some basic stats on the f
 # Version information
 ./sequelizer --version
 ```
-
 ### Fast5 Subcommand Options
 ```bash
 # Basic operations
@@ -77,7 +75,6 @@ Use this to skim across your fast5 directories and get some basic stats on the f
 ```
 
 ## Output Examples
-
 ### Standard Info Mode on One File
 ```
 [████████████████████████████████████████] 100% (1/1)
@@ -115,7 +112,6 @@ Signal statistics:
   Avg duration: 2.5 seconds
 Processing time: 0.04 seconds
 ```
-
 ### Standard Info Mode on a Directory
 ```
 [████████████████████████████████████████] 100% (86/86)
@@ -134,7 +130,6 @@ Signal statistics:
   Avg duration: 5.7 seconds
 Processing time: 2.47 seconds
 ```
-
 ### Looking Recursively Through Directories (some files fail)
 ```
 [████████████████████████░░░░░░░░░░░░░░░░] 62% (48/77)sequelizer: Failed to open Fast5 file: /a/directory/a_file.fast5
@@ -155,14 +150,12 @@ Signal statistics:
   Avg duration: 17.5 seconds
 Processing time: 0.03 seconds
 ```
-
 ### Debug Mode Output
 ```
 # todo
 ```
 
 ## Workflow Patterns
-
 ### Quality Control Workflow
 ```bash
 # Step 1: Quick overview of dataset
@@ -170,7 +163,6 @@ Processing time: 0.03 seconds
 # Step 2: Detailed analysis of interesting files
 ./sequelizer fast5 /path/to/sequencing_run/subset/ --recursive --verbose
 ```
-
 ### Batch Processing Workflow
 ```bash
 # Process multiple directories
@@ -183,7 +175,6 @@ done
 ```
 
 ## Performance Guidelines
-
 ### File Processing Performance
 - **Single files**: Instant metadata extraction
 - **Small directories** (< 100 files): Process individually with details
@@ -206,7 +197,6 @@ done
 ```
 
 ## Integration with Other Tools
-
 ### Pipeline Integration
 ```bash
 # Generate file lists for downstream processing
@@ -240,7 +230,6 @@ done
 # Convert with verbose output
 ./sequelizer convert data.fast5 --to raw --verbose
 ```
-
 ### Output Options
 ```bash
 # Convert to raw signals with specific output name (note: single-read files interpret output as a file name, not a directory, while multi-read reafiles interpret the output as a directory only)
@@ -253,7 +242,6 @@ done
 # NOTE: for multi-read files when you do specify an output, the file names will be read_ch<channel num>_rd<read num>.txt
 ./sequelizer convert multi_read.fast5 --to raw --all -o signals
 ```
-
 ### Directory Operations
 ```bash
 # Convert directory (non-recursive)
@@ -263,7 +251,6 @@ done
 # Recursive with verbose output and output directory
 ./sequelizer convert /path/to/fast5_files/ --to raw --recursive --verbose -o converted/
 ```
-
 ### Real Dataset Examples
 ```bash
 # SquiggleFilter project data - extract all raw signals
@@ -275,7 +262,6 @@ done
 ```
 
 ### Command-Line Options
-
 #### Convert Subcommand Options
 ```bash
 # Format selection
@@ -292,7 +278,6 @@ done
 ```
 
 ### Output File Naming
-
 #### Single-read Files
 ```bash
 # Without -o flag: automatic naming using channel and read numbers
@@ -314,7 +299,6 @@ done
 ```
 
 ### Output Examples
-
 #### Single-Read Conversion with Verbose
 ```
 $ ./sequelizer convert data.fast5 --to raw --verbose
@@ -364,12 +348,11 @@ Converting 77 files to raw format...
 ```
 
 ### Workflow Patterns
-
 #### Signal Analysis Workflow
 ```bash
 # Step 1: Extract raw signals from experimental data
 ./sequelizer convert experimental_run/ --to raw --recursive --all -o raw_signals/
-# Step 2: Process specific files of interest
+# Step 2: Process specific files of interest (note: only multi-read files can be output to a directory)
 ./sequelizer convert interesting_file.fast5 --to raw --verbose -o analysis/
 # Step 3: Batch convert multiple datasets
 for dataset in run_*/; do
@@ -398,7 +381,6 @@ find dataset/ -name "*.fast5" -exec ./sequelizer convert {} --to raw -o processe
 ```
 
 ### Error Handling Examples
-
 #### Common Error Scenarios
 ```bash
 # File not found
@@ -416,7 +398,6 @@ Warning: Cannot create directory: /readonly/output/
 ```
 
 ### Signal Format Details
-
 #### Raw Signal Output Format
 - **File format**: Plain text, one signal value per line
 - **Precision**: 6 decimal places (e.g., 123.456789)
@@ -425,15 +406,22 @@ Warning: Cannot create directory: /readonly/output/
 
 #### Example Signal File Content
 ```
-127.542000
-128.891000
-129.234000
-130.567000
+# Channel: 228
+# Offset: 22.000000
+# Range: 1456.560000
+# Digitisation: 8192.000000
+# Conversion: signal_pA = (raw_signal + offset) * range / digitisation
+# Sample Rate: 4000.0
+# Read ID: e47468bf-12e3-4208-a866-babdd780e9c0
+#
+356
+260
+258
+242
 ...
 ```
 
 ### Performance Guidelines
-
 #### Conversion Performance
 - **Single files**: Instant extraction for small files (< 10MB)
 - **Multi-read files**: ~100-500ms per file depending on read count
@@ -451,7 +439,6 @@ Warning: Cannot create directory: /readonly/output/
 ```
 
 ### Integration with Other Tools
-
 #### Pipeline Integration
 ```bash
 # Extract signals for custom analysis scripts
@@ -463,7 +450,6 @@ python analyze_signals.py signals/
 ./sequelizer convert interesting_reads/ --to raw -o plots/
 gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 ```
-
 #### Ciren Integration
 ```bash
 # Use Sequelizer for signal extraction
@@ -473,7 +459,6 @@ gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 ```
 
 ## Future Subcommands
-
 ### Planned Commands
 ```bash
 # Sequence generation (in development)
@@ -482,7 +467,6 @@ gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 ./sequelizer fast5 extract <input> --reads read_001,read_002
 ./sequelizer fast5 validate <input>
 ```
-
 ### Extension Points
 - Signal processing capabilities
 - Format conversion utilities
