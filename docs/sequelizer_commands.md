@@ -22,7 +22,7 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 
 ## sequelizer fast5 - Fast5 File Analysis
 **Primary command for Fast5 file metadata extraction and analysis.**
-
+Use this to skim across your fast5 directories and get some basic stats on the fast5 contents.
 ### Basic Usage
 ```bash
 # Single file analysis (default: info mode)
@@ -32,7 +32,6 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 # Verbose output with detailed read information
 ./sequelizer fast5 data.fast5 --verbose
 ```
-
 ### Directory Operations
 ```bash
 # Analyze directory (non-recursive)
@@ -135,7 +134,6 @@ Signal statistics:
   Avg duration: 5.7 seconds
 Processing time: 2.47 seconds
 ```
-
 
 ### Looking Recursively Through Directories (some files fail)
 ```
