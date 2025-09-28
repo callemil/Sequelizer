@@ -1,7 +1,7 @@
 // **********************************************************************
 // sequelizer_convert.c
 // **********************************************************************
-// S Magierowski Aug 22 2025
+// Sebastian Claudiusz Magierowski Aug 22 2025
 //
 // File format conversion operations for Sequelizer
 // cmake ..

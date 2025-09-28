@@ -1,13 +1,17 @@
 // **********************************************************************
 // sequelizer_plot.c
 // **********************************************************************
-// S Magierowski Sep 27 2025
+// Sebastian Claudiusz Magierowski Sep 27 2025
 //
 // Signal visualization and plotting operations for Sequelizer
 // cmake ..
 // cmake --build .
 // ./sequelizer plot --help
-// ./sequelizer plot input.txt
+// ./sequelizer plot file.txt
+// ./sequelizer plot signal.txt --verbose
+// ./sequeilzer plot file1.txt file2.txt
+// ./sequelizer plot ./results/*
+// TODO
 // ./sequelizer plot input.txt --output plot.png
 // ./sequelizer plot --raw input.txt
 

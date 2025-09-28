@@ -1,7 +1,7 @@
 // **********************************************************************
 // sequelizer_plot.h
 // **********************************************************************
-// S Magierowski Sep 27 2025
+// Sebastian Claudiusz Magierowski Sep 27 2025
 //
 // Signal visualization and plotting operations for Sequelizer
 
