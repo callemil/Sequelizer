@@ -111,6 +111,7 @@ static file_format_t detect_file_format(FILE *fp) {
 }
 
 // Parse raw signal file (like output from sequelizer convert)
+// can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
 static int parse_raw_file(FILE *fp, raw_data_t **out_data) {
   char line[1024];
   int data_count = 0;

@@ -192,10 +192,13 @@ int write_signal_to_file(const char *filename, float *signal, size_t signal_leng
     fprintf(f, "#\n");
   }
   
-  // Write signal data
+  // Write column headers
+  fprintf(f, "sample_index\traw_sample\n");
+
+  // Write signal data in two-column format
   for (size_t i = 0; i < signal_length; i++) {
     // Raw ADC values are integers, so cast and print without decimals
-    fprintf(f, "%d\n", (int)signal[i]);
+    fprintf(f, "%zu\t%d\n", i, (int)signal[i]);
   }
   
   fclose(f);
