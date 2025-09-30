@@ -1,0 +1,18 @@
+baseurl: "/Sequelizer"
+url: "https://callemil.github.io"
+
+# Build settings
+markdown: kramdown
+highlighter: rouge
+
+# Include/exclude files
+include: ["images"]
+
+# Plugin settings
+plugins:
+  - jekyll-relative-links
+
+# Relative links settings
+relative_links:
+  enabled: true
+  collections: false
