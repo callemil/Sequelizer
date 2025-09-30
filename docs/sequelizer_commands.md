@@ -11,6 +11,7 @@ Complete usage guide for all Sequelizer subcommands with detailed examples and w
 
 - [sequelizer fast5 - Fast5 File Analysis](#sequelizer-fast5---fast5-file-analysis)
 - [sequelizer convert - Fast5 Format Conversion](#sequelizer-convert---fast5-format-conversion)
+- [sequelizer plot - Visualizing Measurements](#sequelizer-plot---visualizing-measurements)
 - [Command-Line Options](#command-line-options)
 - [Output Examples](#output-examples)
 - [Workflow Patterns](#workflow-patterns)
@@ -216,7 +217,6 @@ done
 ```
 
 ## sequelizer convert - Fast5 Format Conversion
-
 **Convert Fast5 files to different output formats for downstream analysis.**
 
 ### Basic Usage
@@ -457,6 +457,10 @@ gnuplot -e "plot 'plots/read_ch271_rd66.txt' with lines"
 # Then use Ciren for advanced analysis
 ../ciren/build/ciren bcall signals/ --model-path models/
 ```
+
+
+## sequelizer plot - Visualizing Measurements
+**Taking a look at signals.**
 
 ## Future Subcommands
 ### Planned Commands

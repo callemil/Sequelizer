@@ -3,18 +3,17 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Sep 27 2025
 //
-// Signal visualization and plotting operations for Sequelizer
-// cmake ..
-// cmake --build .
-// ./sequelizer plot --help
-// ./sequelizer plot file.txt
-// ./sequelizer plot signal.txt --verbose
-// ./sequeilzer plot file1.txt file2.txt
-// ./sequelizer plot ./results/*
-// TODO
-// ./sequelizer plot input.txt --output plot.png
-// ./sequelizer plot --raw input.txt
-
+/* Signal visualization and plotting operations for Sequelizer
+cmake .. & cmake --build .
+./sequelizer plot --help
+./sequelizer plot file.txt
+./sequelizer plot signal.txt --verbose
+./sequeilzer plot file1.txt file2.txt
+./sequelizer plot ./results/*
+TODO
+./sequelizer plot input.txt --output plot.png
+./sequelizer plot --raw input.txt
+*/
 #include "sequelizer_plot.h"
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
@@ -110,7 +109,7 @@ static file_format_t detect_file_format(FILE *fp) {
   return FILE_FORMAT_UNKNOWN;
 }
 
-// Parse raw signal file (like output from sequelizer convert)
+// Read text file line-by-line, converts text to raw_data_t in mem, handles multiple formats, returns array of raw_data_t structs
 // can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
 static int parse_raw_file(FILE *fp, raw_data_t **out_data) {
   char line[1024];
@@ -165,7 +164,7 @@ static int parse_raw_file(FILE *fp, raw_data_t **out_data) {
   return data_count;
 }
 
-// Plot raw signal data using feedgnuplot
+// Takes parsed data arary, constructs feedgnuplot command, pipes data to feedgnuplot for rendering
 static int plot_raw_data(raw_data_t *data, int count, const char *title) {
   char cmd[512];
   const char *plot_title = title ? title : "Raw Signal Data";
@@ -206,7 +205,7 @@ static int plot_raw_data(raw_data_t *data, int count, const char *title) {
 // **********************************************************************
 // Main Plotting Function
 // **********************************************************************
-
+// Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse_raw_file() & plot_raw_data()
 static int plot_signals(char **files, int file_count, const char *output_file, bool verbose) {
   int total_data_points = 0;
 
