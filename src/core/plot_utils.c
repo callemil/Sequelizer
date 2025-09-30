@@ -84,74 +84,135 @@ file_format_t detect_plot_file_format(FILE *fp) {
 }
 
 // **********************************************************************
-// Data Validation
+// Data Parsing
 // **********************************************************************
 
-// Validate raw data array for consistency and reasonable values
-bool validate_raw_data(const raw_data_t *data, int count) {
-  if (!data || count <= 0) {
-    return false;
-  }
+// Read text file line-by-line, converts text to raw_data_t in mem, handles multiple formats, returns array of raw_data_t structs
+// can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
+int parse_raw_file(FILE *fp, raw_data_t **out_data) {
+  char line[1024];
+  int data_count = 0;
+  int capacity = 10000;
+  raw_data_t *data = malloc(capacity * sizeof(raw_data_t));
 
-  // Check for reasonable sample indices (should be sequential or increasing)
-  for (int i = 1; i < count; i++) {
-    if (data[i].sample_index < data[i-1].sample_index) {
-      // Non-monotonic indices - could be valid but unusual
-      return true; // Still valid, just not sequential
-    }
-  }
-
-  return true;
-}
-
-// Validate squiggle data array for consistency and reasonable values
-bool validate_squiggle_data(const squiggle_data_t *data, int count) {
-  if (!data || count <= 0) {
-    return false;
-  }
-
-  // Check for reasonable values
-  for (int i = 0; i < count; i++) {
-    // Position should be reasonable
-    if (data[i].pos < 0) {
-      return false;
-    }
-
-    // Base should be valid DNA/RNA base
-    char base = data[i].base;
-    if (base != 'A' && base != 'T' && base != 'G' && base != 'C' &&
-        base != 'U' && base != 'N') {
-      return false;
-    }
-
-    // Dwell time should be positive
-    if (data[i].dwell <= 0.0f) {
-      return false;
-    }
-
-    // Standard deviation should be non-negative
-    if (data[i].sd < 0.0f) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-// **********************************************************************
-// Data Conversion Utilities
-// **********************************************************************
-
-// Convert raw ADC samples to picoampere current using calibration parameters
-int convert_raw_to_current(raw_data_t *data, int count, float offset, float range, float digitisation) {
-  if (!data || count <= 0 || digitisation == 0.0f) {
+  if (!data) {
+    fprintf(stderr, "Memory allocation failed\n");
     return -1;
   }
 
-  // Apply conversion: signal_pA = (raw_signal + offset) * range / digitisation
-  for (int i = 0; i < count; i++) {
-    data[i].raw_value = (data[i].raw_value + offset) * range / digitisation;
+  while (fgets(line, sizeof(line), fp)) {
+    // Skip comments and headers
+    if (line[0] == '#' || strstr(line, "Channel:") ||
+        strstr(line, "Sample Rate:") || strstr(line, "Read ID:") ||
+        strstr(line, "sample_index") || strstr(line, "Sample Index")) {
+      continue;
+    }
+
+    // Skip empty lines
+    if (line[0] == '\n') {
+      continue;
+    }
+
+    // Try to parse as tab-separated values first
+    if (sscanf(line, "%d\t%f", &data[data_count].sample_index, &data[data_count].raw_value) == 2) {
+      data_count++;
+    }
+    // If tab-separated fails, try space-separated or just raw values
+    else if (sscanf(line, "%d %f", &data[data_count].sample_index, &data[data_count].raw_value) == 2) {
+      data_count++;
+    }
+    // If no index, assume sequential indexing (just raw values)
+    else if (sscanf(line, "%f", &data[data_count].raw_value) == 1) {
+      data[data_count].sample_index = data_count;
+      data_count++;
+    }
+
+    // Resize array if needed
+    if (data_count >= capacity) {
+      capacity *= 2;
+      data = realloc(data, capacity * sizeof(raw_data_t));
+      if (!data) {
+        fprintf(stderr, "Memory reallocation failed\n");
+        return -1;
+      }
+    }
   }
 
-  return 0;
+  *out_data = data;
+  return data_count;
 }
+
+// **********************************************************************
+// Main Plotting Function
+// **********************************************************************
+
+// Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse_raw_file() & plot callback
+int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
+                 int (*plot_callback)(raw_data_t *data, int count, const char *title)) {
+  int total_data_points = 0;
+
+  if (verbose) {
+    printf("Processing %d files for plotting...\n", file_count);
+  }
+
+  for (int fn = 0; fn < file_count; fn++) {
+    FILE *fh = fopen(files[fn], "r");
+    if (!fh) {
+      fprintf(stderr, "Failed to open \"%s\" for input.\n", files[fn]);
+      continue;
+    }
+
+    if (verbose) {
+      printf("Processing file: %s\n", files[fn]);
+    }
+
+    // Detect file format using shared utility
+    file_format_t format = detect_plot_file_format(fh);
+    int data_count = 0;
+
+    switch (format) {
+      case FILE_FORMAT_RAW: {
+        if (verbose) {
+          printf("  -> Detected raw signal format\n");
+        }
+
+        raw_data_t *raw_data = NULL;
+        data_count = parse_raw_file(fh, &raw_data);
+
+        if (data_count > 0) {
+          if (verbose) {
+            printf("  -> Parsed %d raw signal points\n", data_count);
+            printf("  -> Creating raw signal plot...\n");
+          }
+          if (plot_callback) {
+            plot_callback(raw_data, data_count, files[fn]);
+          }
+        } else {
+          printf("  -> No valid data found in file\n");
+        }
+
+        free(raw_data);
+        break;
+      }
+
+      case FILE_FORMAT_SQUIGGLE:
+        printf("  -> Detected squiggle format (not yet implemented)\n");
+        break;
+
+      case FILE_FORMAT_UNKNOWN:
+      default:
+        printf("  -> Unknown file format, skipping\n");
+        break;
+    }
+
+    total_data_points += data_count;
+    fclose(fh);
+  }
+
+  if (verbose) {
+    printf("Processed %d files with %d total data points.\n", file_count, total_data_points);
+  }
+
+  return 0; // Changed from EXIT_SUCCESS to 0 for consistency
+}
+

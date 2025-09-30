@@ -44,11 +44,11 @@ typedef struct {
 // File format detection
 file_format_t detect_plot_file_format(FILE *fp);
 
-// Data validation
-bool validate_raw_data(const raw_data_t *data, int count);
-bool validate_squiggle_data(const squiggle_data_t *data, int count);
+// Data parsing
+int parse_raw_file(FILE *fp, raw_data_t **out_data);
 
-// Data conversion utilities
-int convert_raw_to_current(raw_data_t *data, int count, float offset, float range, float digitisation);
+// Main plotting function (takes callback for actual plotting)
+int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
+                 int (*plot_callback)(raw_data_t *data, int count, const char *title));
 
 #endif // PLOT_UTILS_H
