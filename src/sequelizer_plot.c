@@ -18,6 +18,7 @@ TODO
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
 #include "core/util.h"
+#include "core/plot_utils.h"
 #include <string.h>
 #include <sys/stat.h>
 #include <stdint.h>
@@ -25,89 +26,10 @@ TODO
 #include <err.h>
 
 // **********************************************************************
-// Data Structures and File Format Detection
+// File Format Detection (moved to core/plot_utils.h)
 // **********************************************************************
 
-typedef enum {
-  FILE_FORMAT_UNKNOWN,
-  FILE_FORMAT_RAW,
-  FILE_FORMAT_SQUIGGLE
-} file_format_t;
-
-typedef struct {
-  int sample_index;
-  float raw_value;
-} raw_data_t;
-
-// Detect file format by examining first few lines
-static file_format_t detect_file_format(FILE *fp) {
-  char line[1024];
-  long start_pos = ftell(fp);
-  bool has_channel_metadata = false;
-  bool found_numeric_data = false;
-
-  while (fgets(line, sizeof(line), fp)) {
-    // Check for sequelizer convert metadata markers
-    if (strstr(line, "# Channel:") || strstr(line, "# Sample Rate:") ||
-        strstr(line, "# Read ID:") || strstr(line, "# Offset:")) {
-      has_channel_metadata = true;
-      continue;
-    }
-
-    // Skip other comments and empty lines
-    if (line[0] == '#' || line[0] == '\n') {
-      continue;
-    }
-
-    // Check for explicit headers
-    if (strstr(line, "sample_index") || strstr(line, "Sample Index")) {
-      fseek(fp, start_pos, SEEK_SET);
-      return FILE_FORMAT_RAW;
-    }
-
-    if (strstr(line, "pos") && strstr(line, "base") && strstr(line, "current")) {
-      fseek(fp, start_pos, SEEK_SET);
-      return FILE_FORMAT_SQUIGGLE;
-    }
-
-    // Check first data line format
-    if (!found_numeric_data) {
-      if (strchr(line, '\t')) {
-        int tab_count = 0;
-        for (char *p = line; *p; p++) {
-          if (*p == '\t') tab_count++;
-        }
-
-        fseek(fp, start_pos, SEEK_SET);
-        if (tab_count == 1) {
-          return FILE_FORMAT_RAW;       // sample_index, raw_value
-        } else if (tab_count == 4) {
-          return FILE_FORMAT_SQUIGGLE;  // pos, base, current, sd, dwell
-        }
-      }
-
-      // Check if it's just a numeric value (sequelizer convert raw output)
-      float test_value;
-      if (sscanf(line, "%f", &test_value) == 1) {
-        found_numeric_data = true;
-        // If we found channel metadata earlier, this is likely raw format
-        if (has_channel_metadata) {
-          fseek(fp, start_pos, SEEK_SET);
-          return FILE_FORMAT_RAW;
-        }
-      }
-    }
-  }
-
-  fseek(fp, start_pos, SEEK_SET);
-
-  // If we found numeric data, assume raw format as fallback
-  if (found_numeric_data) {
-    return FILE_FORMAT_RAW;
-  }
-
-  return FILE_FORMAT_UNKNOWN;
-}
+// File format detection moved to core/plot_utils.c for reusability
 
 // Read text file line-by-line, converts text to raw_data_t in mem, handles multiple formats, returns array of raw_data_t structs
 // can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
@@ -224,8 +146,8 @@ static int plot_signals(char **files, int file_count, const char *output_file, b
       printf("Processing file: %s\n", files[fn]);
     }
 
-    // Detect file format
-    file_format_t format = detect_file_format(fh);
+    // Detect file format using shared utility
+    file_format_t format = detect_plot_file_format(fh);
     int data_count = 0;
 
     switch (format) {

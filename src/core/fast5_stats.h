@@ -1,7 +1,7 @@
 // **********************************************************************
 // core/fast5_stats.h
 // **********************************************************************
-// S Magierowski Aug 14 2025
+// Sebastian Claudiusz Magierowski Aug 14 2025
 
 #ifndef SEQUELIZER_FAST5_STATS_H
 #define SEQUELIZER_FAST5_STATS_H

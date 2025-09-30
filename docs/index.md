@@ -16,7 +16,7 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
 
 </div>
 
-  <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;">
     <img src="images/squiggle.png" alt="Image 1" width="200" />
     <img src="images/event.png" alt="Image 2" width="200" />
     <img src="images/raw4.png" alt="Image 3" width="200" />

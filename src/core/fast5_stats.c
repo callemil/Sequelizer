@@ -1,7 +1,7 @@
 // **********************************************************************
 // core/fast5_stats.c
 // **********************************************************************
-// S Magierowski Aug 14 2025
+// Sebastian Claudiusz Magierowski Aug 14 2025
 
 #include "fast5_stats.h"
 #include <stdlib.h> // calloc
