@@ -16,12 +16,14 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
 
 </div>
 
-<div style="display: flex; flex-wrap: wrap; gap: 10px;">
-  <img src="docs/sequelizer/images/squiggle.png" alt="Image 1" width="200" />
-  <img src="docs/sequelizer/images/event.png" alt="Image 2" width="200" />
-  <img src="docs/sequelizer/images/raw4.png" alt="Image 3" width="200" />
-  <img src="docs/sequelizer/images/raw8.png" alt="Image 4" width="200" />
-</div>
+  <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+
+  ![Image 1](sequelizer/images/squiggle.png)
+  ![Image 2](sequelizer/images/event.png)
+  ![Image 3](sequelizer/images/raw4.png)
+  ![Image 4](sequelizer/images/raw8.png)
+
+  </div>
 ---
 
 ## Quick Start
