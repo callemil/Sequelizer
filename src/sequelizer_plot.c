@@ -71,7 +71,6 @@ static int plot_raw_data(raw_data_t *data, int count, const char *title) {
 // **********************************************************************
 // Argument Parsing
 // **********************************************************************
-
 static char doc[] = "sequelizer plot -- Signal visualization and plotting\v"
 "EXAMPLES:\n"
 "  sequelizer plot single.txt\n"
