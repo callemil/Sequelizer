@@ -12,7 +12,6 @@
 // **********************************************************************
 // File Format Detection
 // **********************************************************************
-
 // Auto-detect file format by examining headers and data structure (squiggle vs raw vs unknown)
 file_format_t detect_plot_file_format(FILE *fp) {
   char line[1024];
@@ -86,7 +85,6 @@ file_format_t detect_plot_file_format(FILE *fp) {
 // **********************************************************************
 // Data Parsing
 // **********************************************************************
-
 // Read text file line-by-line, converts text to raw_data_t in mem, handles multiple formats, returns array of raw_data_t structs
 // can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
 int parse_raw_file(FILE *fp, raw_data_t **out_data) {
@@ -145,7 +143,6 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
 // **********************************************************************
 // Main Plotting Function
 // **********************************************************************
-
 // Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse_raw_file() & plot callback
 int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
                  int (*plot_callback)(raw_data_t *data, int count, const char *title)) {

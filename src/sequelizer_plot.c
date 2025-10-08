@@ -13,6 +13,8 @@ cmake .. & cmake --build .
 TODO
 ./sequelizer plot input.txt --output plot.png
 ./sequelizer plot --raw input.txt
+NOTES
+file format detection happens in plot_utils.c/h
 */
 #include "sequelizer_plot.h"
 #include "core/fast5_io.h"
@@ -24,12 +26,82 @@ TODO
 #include <stdint.h>
 #include <argp.h>
 #include <err.h>
+#include <assert.h>
 
 // **********************************************************************
-// File Format Detection (moved to core/plot_utils.h)
+// Argument Parsing
 // **********************************************************************
-// File format detection moved to core/plot_utils.c for reusability
+static char doc[] = "sequelizer plot -- Signal visualization and plotting\v"
+"EXAMPLES:\n"
+"  sequelizer plot single.txt\n"
+"  sequelizer plot data.txt --output plot.png\n"
+"  sequelizer plot --png signals.txt\n"
+"  sequelizer plot --title \"My Data\" file.txt\n"
+"  sequelizer plot --limit 5 --verbose file1.txt file2.txt";
 
+static char args_doc[] = "data_file [data_file ...]";
+
+static struct argp_option options[] = {
+  {"limit",         'l', "NREADS",  0, "Maximum number of reads to process (0 is unlimited)"},
+  {"output",        'o', "FILE",    0, "Output file for plot"},
+  {"png",           'p', 0,         0, "Generate PNG files instead of interactive plots"},
+  {"title",         't', "STRING",  0, "Plot title"},
+  {"text-only",      1,  0,         0, "Output parsed data as text only (no plots)"},
+  {"verbose",       'v', 0,         0, "Show detailed information"},
+  {0}
+};
+
+struct arguments {
+  int limit;
+  char *output_file;
+  char *title;
+  bool png_mode;
+  bool text_only;
+  bool verbose;
+  char **files;
+};
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state) {
+  struct arguments *arguments = state->input;
+
+  switch (key) {
+    case 'l':
+      arguments->limit = atoi(arg);
+      assert(arguments->limit > 0);
+      break;
+    case 'o':
+      arguments->output_file = arg;
+      break;
+    case 'p':
+      arguments->png_mode = true;
+      break;
+    case 't':
+      arguments->title = arg;
+      break;
+    case 1:
+      arguments->text_only = true;
+      break;
+    case 'v':
+      arguments->verbose = true;
+      break;
+    case ARGP_KEY_NO_ARGS:
+      argp_usage(state);
+      break;
+    case ARGP_KEY_ARG:
+      arguments->files = &state->argv[state->next - 1];
+      state->next = state->argc;
+      break;
+    default:
+      return ARGP_ERR_UNKNOWN;
+  }
+  return 0;
+}
+
+static struct argp plot_argp = {options, parse_opt, args_doc, doc};
+
+// **********************************************************************
+// Plot Function
+// **********************************************************************
 // Takes parsed data arary, constructs feedgnuplot command, pipes data to feedgnuplot for rendering
 static int plot_raw_data(raw_data_t *data, int count, const char *title) {
   char cmd[512];
@@ -69,71 +141,6 @@ static int plot_raw_data(raw_data_t *data, int count, const char *title) {
 }
 
 // **********************************************************************
-// Argument Parsing
-// **********************************************************************
-static char doc[] = "sequelizer plot -- Signal visualization and plotting\v"
-"EXAMPLES:\n"
-"  sequelizer plot single.txt\n"
-"  sequelizer plot data.txt --output plot.png\n"
-"  sequelizer plot --png signals.txt\n"
-"  sequelizer plot --title \"My Data\" file.txt\n"
-"  sequelizer plot --verbose file1.txt file2.txt";
-
-static char args_doc[] = "data_file [data_file ...]";
-
-static struct argp_option options[] = {
-  {"output",        'o', "FILE",    0, "Output file for plot"},
-  {"png",           'p', 0,         0, "Generate PNG files instead of interactive plots"},
-  {"title",         't', "STRING",  0, "Plot title"},
-  {"text-only",      1,  0,         0, "Output parsed data as text only (no plots)"},
-  {"verbose",       'v', 0,         0, "Show detailed information"},
-  {0}
-};
-
-struct arguments {
-  char *output_file;
-  char *title;
-  bool png_mode;
-  bool text_only;
-  bool verbose;
-  char **files;
-};
-
-static error_t parse_opt(int key, char *arg, struct argp_state *state) {
-  struct arguments *arguments = state->input;
-
-  switch (key) {
-    case 'o':
-      arguments->output_file = arg;
-      break;
-    case 'p':
-      arguments->png_mode = true;
-      break;
-    case 't':
-      arguments->title = arg;
-      break;
-    case 1:
-      arguments->text_only = true;
-      break;
-    case 'v':
-      arguments->verbose = true;
-      break;
-    case ARGP_KEY_NO_ARGS:
-      argp_usage(state);
-      break;
-    case ARGP_KEY_ARG:
-      arguments->files = &state->argv[state->next - 1];
-      state->next = state->argc;
-      break;
-    default:
-      return ARGP_ERR_UNKNOWN;
-  }
-  return 0;
-}
-
-static struct argp plot_argp = {options, parse_opt, args_doc, doc};
-
-// **********************************************************************
 // Main Function
 // **********************************************************************
 int main_plot(int argc, char *argv[]) {
@@ -144,6 +151,7 @@ int main_plot(int argc, char *argv[]) {
   struct arguments arguments;
 
   // Set sensible defaults for all configuration options
+  arguments.limit = 0;
   arguments.output_file = NULL;
   arguments.title = NULL;
   arguments.png_mode = false;
@@ -174,6 +182,9 @@ int main_plot(int argc, char *argv[]) {
     if (arguments.text_only) {
       printf("Text-only mode enabled\n");
     }
+    if (arguments.limit > 0) {
+      printf("Read limit: %d\n", arguments.limit);
+    }
     printf("\n");
   }
 
@@ -181,7 +192,16 @@ int main_plot(int argc, char *argv[]) {
   // STEP 3: PERFORM PLOTTING
   // ========================================================================
 
-  int result = plot_signals(arguments.files, file_count, arguments.output_file, arguments.verbose, plot_raw_data);
+  // Apply limit if specified
+  int actual_file_count = file_count;
+  if (arguments.limit > 0 && arguments.limit < file_count) {
+    actual_file_count = arguments.limit;
+    if (arguments.verbose) {
+      printf("Limiting processing to %d files (out of %d available)\n\n", actual_file_count, file_count);
+    }
+  }
+
+  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, plot_raw_data);
 
   // ========================================================================
   // STEP 4: NO CLEANUP NEEDED (FILES ARE JUST POINTERS TO ARGV)
