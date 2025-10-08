@@ -28,7 +28,6 @@ TODO
 // **********************************************************************
 // File Format Detection (moved to core/plot_utils.h)
 // **********************************************************************
-
 // File format detection moved to core/plot_utils.c for reusability
 
 // Takes parsed data arary, constructs feedgnuplot command, pipes data to feedgnuplot for rendering
@@ -69,7 +68,6 @@ static int plot_raw_data(raw_data_t *data, int count, const char *title) {
   return 0;
 }
 
-
 // **********************************************************************
 // Argument Parsing
 // **********************************************************************
@@ -77,21 +75,27 @@ static int plot_raw_data(raw_data_t *data, int count, const char *title) {
 static char doc[] = "sequelizer plot -- Signal visualization and plotting\v"
 "EXAMPLES:\n"
 "  sequelizer plot single.txt\n"
-"  sequelizer plot multi.txt --output plot.png\n"
-"  sequelizer plot --raw signals.txt";
+"  sequelizer plot data.txt --output plot.png\n"
+"  sequelizer plot --png signals.txt\n"
+"  sequelizer plot --title \"My Data\" file.txt\n"
+"  sequelizer plot --verbose file1.txt file2.txt";
 
 static char args_doc[] = "data_file [data_file ...]";
 
 static struct argp_option options[] = {
   {"output",        'o', "FILE",    0, "Output file for plot"},
-  {"raw",           'r', 0,         0, "Plot raw signals"},
+  {"png",           'p', 0,         0, "Generate PNG files instead of interactive plots"},
+  {"title",         't', "STRING",  0, "Plot title"},
+  {"text-only",      1,  0,         0, "Output parsed data as text only (no plots)"},
   {"verbose",       'v', 0,         0, "Show detailed information"},
   {0}
 };
 
 struct arguments {
   char *output_file;
-  bool raw;
+  char *title;
+  bool png_mode;
+  bool text_only;
   bool verbose;
   char **files;
 };
@@ -103,8 +107,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
     case 'o':
       arguments->output_file = arg;
       break;
-    case 'r':
-      arguments->raw = true;
+    case 'p':
+      arguments->png_mode = true;
+      break;
+    case 't':
+      arguments->title = arg;
+      break;
+    case 1:
+      arguments->text_only = true;
       break;
     case 'v':
       arguments->verbose = true;
@@ -137,7 +147,9 @@ int main_plot(int argc, char *argv[]) {
 
   // Set sensible defaults for all configuration options
   arguments.output_file = NULL;
-  arguments.raw = false;
+  arguments.title = NULL;
+  arguments.png_mode = false;
+  arguments.text_only = false;
   arguments.verbose = false;
   arguments.files = NULL;
 
@@ -157,7 +169,13 @@ int main_plot(int argc, char *argv[]) {
     if (arguments.output_file) {
       printf("Output file: %s\n", arguments.output_file);
     }
-    printf("Plot type: %s\n", arguments.raw ? "raw signals" : "processed signals");
+    if (arguments.title) {
+      printf("Plot title: %s\n", arguments.title);
+    }
+    printf("Mode: %s\n", arguments.png_mode ? "PNG generation" : "interactive plotting");
+    if (arguments.text_only) {
+      printf("Text-only mode enabled\n");
+    }
     printf("\n");
   }
 
