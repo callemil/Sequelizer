@@ -169,6 +169,68 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
   return data_count;
 }
 
+// Parse squiggle format file (pos base current sd dwell) into memory structure
+int parse_squiggle_file(FILE *fp, squiggle_data_t **out_data) {
+  // ========================================================================
+  // STEP 1: ALLOCATE INITIAL DATA ARRAY WITH DYNAMIC CAPACITY
+  // ========================================================================
+  char line[1024];
+  int data_count = 0;
+  int capacity = 1000;
+  squiggle_data_t *data = malloc(capacity * sizeof(squiggle_data_t));
+
+  if (!data) {
+    fprintf(stderr, "Memory allocation failed\n");
+    return -1;
+  }
+
+  // ========================================================================
+  // STEP 2: READ FILE LINE-BY-LINE AND PARSE SQUIGGLE DATA
+  // ========================================================================
+  while (fgets(line, sizeof(line), fp)) {
+    // Skip console output and comments
+    if (line[0] == '\n' || strncmp(line, "Executing", 9) == 0 ||
+        strstr(line, ": ") || strncmp(line, "Processed", 9) == 0 ||
+        line[0] == '#') {
+      continue;
+    }
+
+    // Skip header line
+    if (strstr(line, "pos\tbase\tcurrent") || strstr(line, "pos") && strstr(line, "base")) {
+      continue;
+    }
+
+    // ========================================================================
+    // STEP 3: PARSE SQUIGGLE DATA LINE (pos, base, current, sd, dwell)
+    // ========================================================================
+    if (sscanf(line, "%d\t%c\t%f\t%f\t%f",
+               &data[data_count].pos, &data[data_count].base,
+               &data[data_count].current, &data[data_count].sd,
+               &data[data_count].dwell) == 5) {
+
+      data_count++;
+
+      // ========================================================================
+      // STEP 4: DYNAMICALLY RESIZE ARRAY IF CAPACITY IS EXCEEDED
+      // ========================================================================
+      if (data_count >= capacity) {
+        capacity *= 2;
+        data = realloc(data, capacity * sizeof(squiggle_data_t));
+        if (!data) {
+          fprintf(stderr, "Memory reallocation failed\n");
+          return -1;
+        }
+      }
+    }
+  }
+
+  // ========================================================================
+  // STEP 5: RETURN PARSED DATA ARRAY AND COUNT
+  // ========================================================================
+  *out_data = data;
+  return data_count;
+}
+
 // **********************************************************************
 // Main Plotting Function
 // **********************************************************************
@@ -257,24 +319,52 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
         break;
       }
 
-      case FILE_FORMAT_SQUIGGLE:
+      case FILE_FORMAT_SQUIGGLE: {
         if (verbose) {
-          printf("  -> Detected squiggle format (not yet implemented)\n");
+          printf("  -> Detected squiggle format\n");
         }
-        // Future: When squiggle parsing is implemented, add:
-        // squiggle_data_t *squiggle_data = NULL;
-        // data_count = parse_squiggle_file(fh, &squiggle_data);
-        // if (data_count > 0) {
-        //   if (png_mode && callbacks->plot_squiggle_png) {
-        //     char png_filename[256];
-        //     snprintf(png_filename, sizeof(png_filename), "%s_squiggle.png", files[fn]);
-        //     callbacks->plot_squiggle_png(squiggle_data, data_count, png_filename);
-        //   } else if (callbacks->plot_squiggle) {
-        //     callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
-        //   }
-        // }
-        // free(squiggle_data);
+
+        squiggle_data_t *squiggle_data = NULL;
+        data_count = parse_squiggle_file(fh, &squiggle_data);
+
+        if (data_count > 0) {
+          if (verbose) {
+            printf("  -> Parsed %d squiggle data points\n", data_count);
+          }
+          // ========================================================================
+          // STEP 5: INVOKE PLOTTING CALLBACK WITH PARSED DATA
+          // ========================================================================
+          // Choose callback based on PNG mode
+          if (png_mode) {
+            // PNG mode - generate filename and use PNG callback
+            if (callbacks && callbacks->plot_squiggle_png) {
+              char png_filename[256];
+              snprintf(png_filename, sizeof(png_filename), "%s_squiggle.png", files[fn]);
+              if (verbose) {
+                printf("  -> Creating PNG: %s\n", png_filename);
+              }
+              callbacks->plot_squiggle_png(squiggle_data, data_count, png_filename);
+            } else if (verbose) {
+              printf("  -> Warning: No squiggle PNG callback provided\n");
+            }
+          } else {
+            // Interactive mode - use interactive callback
+            if (callbacks && callbacks->plot_squiggle) {
+              if (verbose) {
+                printf("  -> Creating interactive plot...\n");
+              }
+              callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
+            } else if (verbose) {
+              printf("  -> Warning: No squiggle plotting callback provided\n");
+            }
+          }
+        } else {
+          printf("  -> No valid data found in file\n");
+        }
+
+        free(squiggle_data);
         break;
+      }
 
       case FILE_FORMAT_UNKNOWN:
       default:

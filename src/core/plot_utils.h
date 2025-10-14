@@ -70,6 +70,7 @@ file_format_t detect_plot_file_format(FILE *fp);
 
 // Data parsing
 int parse_raw_file(FILE *fp, raw_data_t **out_data);
+int parse_squiggle_file(FILE *fp, squiggle_data_t **out_data);
 
 // Main plotting function (takes callback struct for extensible plotting)
 // png_mode: if true, use *_png callbacks; if false, use interactive callbacks
