@@ -174,8 +174,9 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
 // **********************************************************************
 // Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse functions & callbacks
 // Uses callback struct pattern for extensibility - supports multiple plot types without changing core infrastructure
+// png_mode: if true, routes to PNG callbacks; if false, routes to interactive callbacks
 int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 plot_callbacks_t *callbacks) {
+                 bool png_mode, plot_callbacks_t *callbacks) {
   // ========================================================================
   // STEP 1: INITIALIZE TRACKING VARIABLES
   // ========================================================================
@@ -220,16 +221,33 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
         if (data_count > 0) {
           if (verbose) {
             printf("  -> Parsed %d raw signal points\n", data_count);
-            printf("  -> Creating raw signal plot...\n");
           }
           // ========================================================================
           // STEP 5: INVOKE PLOTTING CALLBACK WITH PARSED DATA
           // ========================================================================
-          // Check if raw plotting callback is available before invoking
-          if (callbacks && callbacks->plot_raw) {
-            callbacks->plot_raw(raw_data, data_count, files[fn]);
-          } else if (verbose) {
-            printf("  -> Warning: No raw plotting callback provided\n");
+          // Choose callback based on PNG mode
+          if (png_mode) {
+            // PNG mode - generate filename and use PNG callback
+            if (callbacks && callbacks->plot_raw_png) {
+              char png_filename[256];
+              snprintf(png_filename, sizeof(png_filename), "%s_raw.png", files[fn]);
+              if (verbose) {
+                printf("  -> Creating PNG: %s\n", png_filename);
+              }
+              callbacks->plot_raw_png(raw_data, data_count, png_filename);
+            } else if (verbose) {
+              printf("  -> Warning: No raw PNG callback provided\n");
+            }
+          } else {
+            // Interactive mode - use interactive callback
+            if (callbacks && callbacks->plot_raw) {
+              if (verbose) {
+                printf("  -> Creating interactive plot...\n");
+              }
+              callbacks->plot_raw(raw_data, data_count, files[fn]);
+            } else if (verbose) {
+              printf("  -> Warning: No raw plotting callback provided\n");
+            }
           }
         } else {
           printf("  -> No valid data found in file\n");
@@ -244,9 +262,18 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
           printf("  -> Detected squiggle format (not yet implemented)\n");
         }
         // Future: When squiggle parsing is implemented, add:
-        // if (callbacks && callbacks->plot_squiggle) {
-        //   callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
+        // squiggle_data_t *squiggle_data = NULL;
+        // data_count = parse_squiggle_file(fh, &squiggle_data);
+        // if (data_count > 0) {
+        //   if (png_mode && callbacks->plot_squiggle_png) {
+        //     char png_filename[256];
+        //     snprintf(png_filename, sizeof(png_filename), "%s_squiggle.png", files[fn]);
+        //     callbacks->plot_squiggle_png(squiggle_data, data_count, png_filename);
+        //   } else if (callbacks->plot_squiggle) {
+        //     callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
+        //   }
         // }
+        // free(squiggle_data);
         break;
 
       case FILE_FORMAT_UNKNOWN:

@@ -196,7 +196,9 @@ int main_plot(int argc, char *argv[]) {
   // without modifying plot_utils core infrastructure
   plot_callbacks_t callbacks = {
     .plot_raw = plot_raw_data,      // Interactive feedgnuplot plotting
-    .plot_squiggle = NULL            // Not implemented yet
+    .plot_squiggle = NULL,          // Not implemented yet
+    .plot_raw_png = NULL,           // PNG export not implemented in Sequelizer
+    .plot_squiggle_png = NULL       // PNG export not implemented in Sequelizer
   };
 
   // ========================================================================
@@ -212,7 +214,7 @@ int main_plot(int argc, char *argv[]) {
     }
   }
 
-  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, &callbacks);
+  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, arguments.png_mode, &callbacks);
 
   // ========================================================================
   // STEP 5: NO CLEANUP NEEDED (FILES ARE JUST POINTERS TO ARGV)

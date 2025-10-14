@@ -44,12 +44,21 @@ typedef struct {
 // (e.g., PNG export, direct Fast5 plotting, multi-panel plots) without
 // changing core infrastructure. Simply add new callback function pointers
 // as fields, set them in the caller, and check for NULL before invoking.
+//
+// Interactive callbacks: Use feedgnuplot for live display
+// PNG callbacks: Use gnuplot to generate static PNG files
 typedef struct {
+  // Interactive plotting callbacks (feedgnuplot)
   int (*plot_raw)(raw_data_t *data, int count, const char *title);
   int (*plot_squiggle)(squiggle_data_t *data, int count, const char *title);
+
+  // PNG export callbacks (gnuplot)
+  int (*plot_raw_png)(raw_data_t *data, int count, const char *output_path);
+  int (*plot_squiggle_png)(squiggle_data_t *data, int count, const char *output_path);
+
   // Future callbacks can be added here:
-  // int (*plot_png)(raw_data_t *data, int count, const char *filename);
   // int (*plot_fast5)(const char *fast5_file, const char *read_id);
+  // int (*plot_multi_panel)(raw_data_t **data_arrays, int array_count, const char *title);
 } plot_callbacks_t;
 
 // **********************************************************************
@@ -63,7 +72,8 @@ file_format_t detect_plot_file_format(FILE *fp);
 int parse_raw_file(FILE *fp, raw_data_t **out_data);
 
 // Main plotting function (takes callback struct for extensible plotting)
+// png_mode: if true, use *_png callbacks; if false, use interactive callbacks
 int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 plot_callbacks_t *callbacks);
+                 bool png_mode, plot_callbacks_t *callbacks);
 
 #endif // PLOT_UTILS_H
