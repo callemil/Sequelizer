@@ -189,7 +189,18 @@ int main_plot(int argc, char *argv[]) {
   }
 
   // ========================================================================
-  // STEP 3: PERFORM PLOTTING
+  // STEP 3: CONFIGURE PLOTTING CALLBACKS
+  // ========================================================================
+  // Use callback struct pattern for extensible plotting capabilities
+  // This allows future additions (PNG export, Fast5 direct plotting, etc.)
+  // without modifying plot_utils core infrastructure
+  plot_callbacks_t callbacks = {
+    .plot_raw = plot_raw_data,      // Interactive feedgnuplot plotting
+    .plot_squiggle = NULL            // Not implemented yet
+  };
+
+  // ========================================================================
+  // STEP 4: PERFORM PLOTTING
   // ========================================================================
 
   // Apply limit if specified
@@ -201,10 +212,10 @@ int main_plot(int argc, char *argv[]) {
     }
   }
 
-  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, plot_raw_data);
+  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, &callbacks);
 
   // ========================================================================
-  // STEP 4: NO CLEANUP NEEDED (FILES ARE JUST POINTERS TO ARGV)
+  // STEP 5: NO CLEANUP NEEDED (FILES ARE JUST POINTERS TO ARGV)
   // ========================================================================
   // Note: Unlike Fast5 file discovery, no dynamic allocation to free
 

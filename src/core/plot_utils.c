@@ -14,11 +14,17 @@
 // **********************************************************************
 // Auto-detect file format by examining headers and data structure (squiggle vs raw vs unknown)
 file_format_t detect_plot_file_format(FILE *fp) {
+  // ========================================================================
+  // STEP 1: INITIALIZE DETECTION STATE
+  // ========================================================================
   char line[1024];
   long start_pos = ftell(fp);
   bool has_channel_metadata = false;
   bool found_numeric_data = false;
 
+  // ========================================================================
+  // STEP 2: SCAN FILE LINE-BY-LINE FOR FORMAT INDICATORS
+  // ========================================================================
   while (fgets(line, sizeof(line), fp)) {
     // Check for sequelizer convert metadata markers
     if (strstr(line, "# Channel:") || strstr(line, "# Sample Rate:") ||
@@ -32,7 +38,9 @@ file_format_t detect_plot_file_format(FILE *fp) {
       continue;
     }
 
-    // Check for explicit headers
+    // ========================================================================
+    // STEP 3: CHECK FOR EXPLICIT COLUMN HEADERS
+    // ========================================================================
     if (strstr(line, "sample_index") || strstr(line, "Sample Index")) {
       fseek(fp, start_pos, SEEK_SET);
       return FILE_FORMAT_RAW;
@@ -43,7 +51,9 @@ file_format_t detect_plot_file_format(FILE *fp) {
       return FILE_FORMAT_SQUIGGLE;
     }
 
-    // Check first data line format
+    // ========================================================================
+    // STEP 4: ANALYZE FIRST DATA LINE STRUCTURE (TAB COUNT)
+    // ========================================================================
     if (!found_numeric_data) {
       if (strchr(line, '\t')) {
         int tab_count = 0;
@@ -59,7 +69,9 @@ file_format_t detect_plot_file_format(FILE *fp) {
         }
       }
 
-      // Check if it's just a numeric value (sequelizer convert raw output)
+      // ========================================================================
+      // STEP 5: CHECK FOR SIMPLE NUMERIC FORMAT (SINGLE COLUMN)
+      // ========================================================================
       float test_value;
       if (sscanf(line, "%f", &test_value) == 1) {
         found_numeric_data = true;
@@ -72,6 +84,9 @@ file_format_t detect_plot_file_format(FILE *fp) {
     }
   }
 
+  // ========================================================================
+  // STEP 6: RESTORE FILE POSITION AND RETURN BEST GUESS
+  // ========================================================================
   fseek(fp, start_pos, SEEK_SET);
 
   // If we found numeric data, assume raw format as fallback
@@ -88,6 +103,9 @@ file_format_t detect_plot_file_format(FILE *fp) {
 // Read text file line-by-line, converts text to raw_data_t in mem, handles multiple formats, returns array of raw_data_t structs
 // can handle: 2-col tab-separated (0\t356\n1\t260\n2\t258), 2-col space-separted, 1-col w/ auto-indexing (356\n260\n258)
 int parse_raw_file(FILE *fp, raw_data_t **out_data) {
+  // ========================================================================
+  // STEP 1: ALLOCATE INITIAL DATA ARRAY WITH DYNAMIC CAPACITY
+  // ========================================================================
   char line[1024];
   int data_count = 0;
   int capacity = 10000;
@@ -98,6 +116,9 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
     return -1;
   }
 
+  // ========================================================================
+  // STEP 2: READ FILE LINE-BY-LINE AND PARSE NUMERIC DATA
+  // ========================================================================
   while (fgets(line, sizeof(line), fp)) {
     // Skip comments and headers
     if (line[0] == '#' || strstr(line, "Channel:") ||
@@ -111,6 +132,9 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
       continue;
     }
 
+    // ========================================================================
+    // STEP 3: TRY MULTIPLE PARSING STRATEGIES (TAB, SPACE, SINGLE-COLUMN)
+    // ========================================================================
     // Try to parse as tab-separated values first
     if (sscanf(line, "%d\t%f", &data[data_count].sample_index, &data[data_count].raw_value) == 2) {
       data_count++;
@@ -125,7 +149,9 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
       data_count++;
     }
 
-    // Resize array if needed
+    // ========================================================================
+    // STEP 4: DYNAMICALLY RESIZE ARRAY IF CAPACITY IS EXCEEDED
+    // ========================================================================
     if (data_count >= capacity) {
       capacity *= 2;
       data = realloc(data, capacity * sizeof(raw_data_t));
@@ -136,6 +162,9 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
     }
   }
 
+  // ========================================================================
+  // STEP 5: RETURN PARSED DATA ARRAY AND COUNT
+  // ========================================================================
   *out_data = data;
   return data_count;
 }
@@ -143,15 +172,22 @@ int parse_raw_file(FILE *fp, raw_data_t **out_data) {
 // **********************************************************************
 // Main Plotting Function
 // **********************************************************************
-// Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse_raw_file() & plot callback
+// Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse functions & callbacks
+// Uses callback struct pattern for extensibility - supports multiple plot types without changing core infrastructure
 int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 int (*plot_callback)(raw_data_t *data, int count, const char *title)) {
+                 plot_callbacks_t *callbacks) {
+  // ========================================================================
+  // STEP 1: INITIALIZE TRACKING VARIABLES
+  // ========================================================================
   int total_data_points = 0;
 
   if (verbose) {
     printf("Processing %d files for plotting...\n", file_count);
   }
 
+  // ========================================================================
+  // STEP 2: ITERATE THROUGH ALL INPUT FILES
+  // ========================================================================
   for (int fn = 0; fn < file_count; fn++) {
     FILE *fh = fopen(files[fn], "r");
     if (!fh) {
@@ -163,10 +199,15 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
       printf("Processing file: %s\n", files[fn]);
     }
 
-    // Detect file format using shared utility
+    // ========================================================================
+    // STEP 3: AUTO-DETECT FILE FORMAT (RAW, SQUIGGLE, OR UNKNOWN)
+    // ========================================================================
     file_format_t format = detect_plot_file_format(fh);
     int data_count = 0;
 
+    // ========================================================================
+    // STEP 4: PROCESS FILE BASED ON DETECTED FORMAT
+    // ========================================================================
     switch (format) {
       case FILE_FORMAT_RAW: {
         if (verbose) {
@@ -181,8 +222,14 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
             printf("  -> Parsed %d raw signal points\n", data_count);
             printf("  -> Creating raw signal plot...\n");
           }
-          if (plot_callback) {
-            plot_callback(raw_data, data_count, files[fn]);
+          // ========================================================================
+          // STEP 5: INVOKE PLOTTING CALLBACK WITH PARSED DATA
+          // ========================================================================
+          // Check if raw plotting callback is available before invoking
+          if (callbacks && callbacks->plot_raw) {
+            callbacks->plot_raw(raw_data, data_count, files[fn]);
+          } else if (verbose) {
+            printf("  -> Warning: No raw plotting callback provided\n");
           }
         } else {
           printf("  -> No valid data found in file\n");
@@ -193,7 +240,13 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
       }
 
       case FILE_FORMAT_SQUIGGLE:
-        printf("  -> Detected squiggle format (not yet implemented)\n");
+        if (verbose) {
+          printf("  -> Detected squiggle format (not yet implemented)\n");
+        }
+        // Future: When squiggle parsing is implemented, add:
+        // if (callbacks && callbacks->plot_squiggle) {
+        //   callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
+        // }
         break;
 
       case FILE_FORMAT_UNKNOWN:
@@ -202,10 +255,16 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
         break;
     }
 
+    // ========================================================================
+    // STEP 6: ACCUMULATE STATISTICS AND CLEAN UP FILE HANDLE
+    // ========================================================================
     total_data_points += data_count;
     fclose(fh);
   }
 
+  // ========================================================================
+  // STEP 7: REPORT FINAL STATISTICS
+  // ========================================================================
   if (verbose) {
     printf("Processed %d files with %d total data points.\n", file_count, total_data_points);
   }

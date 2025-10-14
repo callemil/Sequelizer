@@ -38,6 +38,21 @@ typedef struct {
 } squiggle_data_t;
 
 // **********************************************************************
+// Callback Structures for Extensible Plotting
+// **********************************************************************
+// This struct pattern allows easy addition of new plotting capabilities
+// (e.g., PNG export, direct Fast5 plotting, multi-panel plots) without
+// changing core infrastructure. Simply add new callback function pointers
+// as fields, set them in the caller, and check for NULL before invoking.
+typedef struct {
+  int (*plot_raw)(raw_data_t *data, int count, const char *title);
+  int (*plot_squiggle)(squiggle_data_t *data, int count, const char *title);
+  // Future callbacks can be added here:
+  // int (*plot_png)(raw_data_t *data, int count, const char *filename);
+  // int (*plot_fast5)(const char *fast5_file, const char *read_id);
+} plot_callbacks_t;
+
+// **********************************************************************
 // Utility Functions
 // **********************************************************************
 
@@ -47,8 +62,8 @@ file_format_t detect_plot_file_format(FILE *fp);
 // Data parsing
 int parse_raw_file(FILE *fp, raw_data_t **out_data);
 
-// Main plotting function (takes callback for actual plotting)
+// Main plotting function (takes callback struct for extensible plotting)
 int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 int (*plot_callback)(raw_data_t *data, int count, const char *title));
+                 plot_callbacks_t *callbacks);
 
 #endif // PLOT_UTILS_H
