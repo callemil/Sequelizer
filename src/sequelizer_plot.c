@@ -189,11 +189,20 @@ int main_plot(int argc, char *argv[]) {
   }
 
   // ========================================================================
-  // STEP 3: CONFIGURE PLOTTING CALLBACKS
+  // STEP 3: CONFIGURE PLOTTING OPTIONS AND CALLBACKS
   // ========================================================================
-  // Use callback struct pattern for extensible plotting capabilities
-  // This allows future additions (PNG export, Fast5 direct plotting, etc.)
-  // without modifying plot_utils core infrastructure
+  // Use struct-based configuration for scalability
+  // This allows adding new options without changing function signatures
+
+  // Configure plotting options
+  plot_config_t config = {
+    .verbose = arguments.verbose,
+    .png_mode = arguments.png_mode,
+    .title = arguments.title,
+    .output_file = arguments.output_file
+  };
+
+  // Configure plotting callbacks
   plot_callbacks_t callbacks = {
     .plot_raw = plot_raw_data,      // Interactive feedgnuplot plotting
     .plot_squiggle = NULL,          // Not implemented yet
@@ -214,7 +223,7 @@ int main_plot(int argc, char *argv[]) {
     }
   }
 
-  int result = plot_signals(arguments.files, actual_file_count, arguments.output_file, arguments.verbose, arguments.png_mode, &callbacks);
+  int result = plot_signals(arguments.files, actual_file_count, &config, &callbacks);
 
   // ========================================================================
   // STEP 5: NO CLEANUP NEEDED (FILES ARE JUST POINTERS TO ARGV)

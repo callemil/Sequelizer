@@ -235,16 +235,14 @@ int parse_squiggle_file(FILE *fp, squiggle_data_t **out_data) {
 // Main Plotting Function
 // **********************************************************************
 // Coordinator: takes list of CL files, loops through them, detects format, opens file, calls parse functions & callbacks
-// Uses callback struct pattern for extensibility - supports multiple plot types without changing core infrastructure
-// png_mode: if true, routes to PNG callbacks; if false, routes to interactive callbacks
-int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 bool png_mode, plot_callbacks_t *callbacks) {
+// Uses struct-based parameters for scalability - add new options to structs, not function signature
+int plot_signals(char **files, int file_count, plot_config_t *config, plot_callbacks_t *callbacks) {
   // ========================================================================
   // STEP 1: INITIALIZE TRACKING VARIABLES
   // ========================================================================
   int total_data_points = 0;
 
-  if (verbose) {
+  if (config->verbose) {
     printf("Processing %d files for plotting...\n", file_count);
   }
 
@@ -258,7 +256,7 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
       continue;
     }
 
-    if (verbose) {
+    if (config->verbose) {
       printf("Processing file: %s\n", files[fn]);
     }
 
@@ -273,7 +271,7 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
     // ========================================================================
     switch (format) {
       case FILE_FORMAT_RAW: {
-        if (verbose) {
+        if (config->verbose) {
           printf("  -> Detected raw signal format\n");
         }
 
@@ -281,33 +279,35 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
         data_count = parse_raw_file(fh, &raw_data);
 
         if (data_count > 0) {
-          if (verbose) {
+          if (config->verbose) {
             printf("  -> Parsed %d raw signal points\n", data_count);
           }
           // ========================================================================
-          // STEP 5: INVOKE PLOTTING CALLBACK WITH PARSED DATA
+          // STEP 4.1: INVOKE RAW PLOTTING CALLBACK WITH PARSED DATA
           // ========================================================================
           // Choose callback based on PNG mode
-          if (png_mode) {
+          if (config->png_mode) {
             // PNG mode - generate filename and use PNG callback
             if (callbacks && callbacks->plot_raw_png) {
               char png_filename[256];
               snprintf(png_filename, sizeof(png_filename), "%s_raw.png", files[fn]);
-              if (verbose) {
+              if (config->verbose) {
                 printf("  -> Creating PNG: %s\n", png_filename);
               }
               callbacks->plot_raw_png(raw_data, data_count, png_filename);
-            } else if (verbose) {
+            } else if (config->verbose) {
               printf("  -> Warning: No raw PNG callback provided\n");
             }
           } else {
             // Interactive mode - use interactive callback
             if (callbacks && callbacks->plot_raw) {
-              if (verbose) {
+              if (config->verbose) {
                 printf("  -> Creating interactive plot...\n");
               }
-              callbacks->plot_raw(raw_data, data_count, files[fn]);
-            } else if (verbose) {
+              // Use provided title or fallback to filename
+              const char *plot_title = config->title ? config->title : files[fn];
+              callbacks->plot_raw(raw_data, data_count, plot_title);
+            } else if (config->verbose) {
               printf("  -> Warning: No raw plotting callback provided\n");
             }
           }
@@ -320,7 +320,7 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
       }
 
       case FILE_FORMAT_SQUIGGLE: {
-        if (verbose) {
+        if (config->verbose) {
           printf("  -> Detected squiggle format\n");
         }
 
@@ -328,33 +328,35 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
         data_count = parse_squiggle_file(fh, &squiggle_data);
 
         if (data_count > 0) {
-          if (verbose) {
+          if (config->verbose) {
             printf("  -> Parsed %d squiggle data points\n", data_count);
           }
           // ========================================================================
-          // STEP 5: INVOKE PLOTTING CALLBACK WITH PARSED DATA
+          // STEP 4.2: INVOKE SQUIGGLE PLOTTING CALLBACK WITH PARSED DATA
           // ========================================================================
           // Choose callback based on PNG mode
-          if (png_mode) {
+          if (config->png_mode) {
             // PNG mode - generate filename and use PNG callback
             if (callbacks && callbacks->plot_squiggle_png) {
               char png_filename[256];
               snprintf(png_filename, sizeof(png_filename), "%s_squiggle.png", files[fn]);
-              if (verbose) {
+              if (config->verbose) {
                 printf("  -> Creating PNG: %s\n", png_filename);
               }
               callbacks->plot_squiggle_png(squiggle_data, data_count, png_filename);
-            } else if (verbose) {
+            } else if (config->verbose) {
               printf("  -> Warning: No squiggle PNG callback provided\n");
             }
           } else {
             // Interactive mode - use interactive callback
             if (callbacks && callbacks->plot_squiggle) {
-              if (verbose) {
+              if (config->verbose) {
                 printf("  -> Creating interactive plot...\n");
               }
-              callbacks->plot_squiggle(squiggle_data, data_count, files[fn]);
-            } else if (verbose) {
+              // Use provided title or fallback to filename
+              const char *plot_title = config->title ? config->title : files[fn];
+              callbacks->plot_squiggle(squiggle_data, data_count, plot_title);
+            } else if (config->verbose) {
               printf("  -> Warning: No squiggle plotting callback provided\n");
             }
           }
@@ -382,7 +384,7 @@ int plot_signals(char **files, int file_count, const char *output_file, bool ver
   // ========================================================================
   // STEP 7: REPORT FINAL STATISTICS
   // ========================================================================
-  if (verbose) {
+  if (config->verbose) {
     printf("Processed %d files with %d total data points.\n", file_count, total_data_points);
   }
 

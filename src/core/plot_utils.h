@@ -38,8 +38,23 @@ typedef struct {
 } squiggle_data_t;
 
 // **********************************************************************
-// Callback Structures for Extensible Plotting
+// Configuration and Callback Structures for Extensible Plotting
 // **********************************************************************
+
+// Plot configuration options - passed to plot_signals()
+// Scalable design: add new options here instead of function parameters
+typedef struct {
+  bool verbose;           // Show detailed information
+  bool png_mode;          // Generate PNG files instead of interactive plots
+  const char *title;      // Optional title for plots (NULL uses filename)
+  const char *output_file; // Optional output file path
+  // Future options can be added here without changing function signatures:
+  // int width;           // Plot width in pixels
+  // int height;          // Plot height in pixels
+  // bool log_scale;      // Use logarithmic scale
+} plot_config_t;
+
+// Callback functions for different plot types
 // This struct pattern allows easy addition of new plotting capabilities
 // (e.g., PNG export, direct Fast5 plotting, multi-panel plots) without
 // changing core infrastructure. Simply add new callback function pointers
@@ -72,9 +87,8 @@ file_format_t detect_plot_file_format(FILE *fp);
 int parse_raw_file(FILE *fp, raw_data_t **out_data);
 int parse_squiggle_file(FILE *fp, squiggle_data_t **out_data);
 
-// Main plotting function (takes callback struct for extensible plotting)
-// png_mode: if true, use *_png callbacks; if false, use interactive callbacks
-int plot_signals(char **files, int file_count, const char *output_file, bool verbose,
-                 bool png_mode, plot_callbacks_t *callbacks);
+// Main plotting function (takes config and callback structs for extensible plotting)
+// Uses struct-based parameters for scalability - add new options to structs, not function signature
+int plot_signals(char **files, int file_count, plot_config_t *config, plot_callbacks_t *callbacks);
 
 #endif // PLOT_UTILS_H
