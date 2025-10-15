@@ -17,7 +17,6 @@ Example uses:
 // **********************************************************************
 // Argument Parsing
 // **********************************************************************
-
 static char doc[] = "sequelizer seqgen -- Signal generation from DNA sequences\v"
 "EXAMPLES:\n"
 "  sequelizer seqgen input.fasta -o signals.fast5\n"

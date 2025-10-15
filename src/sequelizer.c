@@ -1,7 +1,7 @@
 // **********************************************************************
-// Sequelizer: Open Source DNA Sequence Analysis Toolkit
+// Sequelizer: C-based DNA Sequence Analysis Toolkit
 // **********************************************************************
-// S Magierowski Jul 26 2025
+// Sebastian Claudiusz Magierowski Jul 26 2025
 //
 // to build:
 // mkdir build
