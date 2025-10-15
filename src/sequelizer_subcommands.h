@@ -11,6 +11,7 @@
 #include "sequelizer_fast5.h"
 #include "sequelizer_convert.h"
 #include "sequelizer_plot.h"
+#include "sequelizer_seqgen.h"
 
 enum sequelizer_mode {SEQUELIZER_MODE_HELP=0,
                       SEQUELIZER_MODE_SEQGEN,

@@ -87,37 +87,5 @@ int main_help_short(void) {
   return EXIT_SUCCESS;
 }
 
-int main_seqgen(int argc, char *argv[]) {
-  // Handle help for seqgen subcommand
-  if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
-    printf("Sequelizer seqgen - Sequence Generation\n");
-    printf("=======================================\n\n");
-    printf("Generate synthetic sequences and signals for testing and development.\n\n");
-    printf("Usage: sequelizer seqgen [options]\n\n");
-    printf("Options:\n");
-    printf("  --nanopore        Generate nanopore-style signals\n");
-    printf("  --model MODEL     Use specific model (r94, r10, etc.)\n");
-    printf("  --length LENGTH   Sequence length to generate\n");
-    printf("  -o FILE           Output file\n");
-    printf("  --help, -h        Show this help\n\n");
-    printf("Examples:\n");
-    printf("  sequelizer seqgen --nanopore --length 1000 -o signals.fast5\n");
-    printf("  sequelizer seqgen --model r94 --length 500\n");
-    return EXIT_SUCCESS;
-  }
-
-  printf("Sequelizer seqgen - Sequence Generation\n");
-  printf("=======================================\n\n");
-  printf("This will generate synthetic sequences and signals.\n");
-  printf("Implementation coming soon...\n\n");
-
-  // For now, just show what the interface will look like
-  printf("Planned usage:\n");
-  printf("  sequelizer seqgen --nanopore --model r94 --length 1000 -o signals.fast5\n");
-  printf("  sequelizer seqgen --ecg --duration 30s --heart-rate 75 -o cardiac.csv\n");
-  printf("  sequelizer seqgen --audio --type speech --duration 10s -o voice.wav\n\n");
-  printf("Use 'sequelizer seqgen --help' for detailed options.\n");
-
-  return EXIT_SUCCESS;
-}
+// Note: main_seqgen() is now implemented in sequelizer_seqgen.c
 

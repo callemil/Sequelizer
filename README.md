@@ -15,5 +15,3 @@ It's for figuring out xNA
 sequelizer % mkdir build && cd build
 sequelizer/build cmake .. && cmake --build .
 ```
-
-
