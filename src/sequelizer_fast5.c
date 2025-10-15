@@ -1,13 +1,13 @@
 // **********************************************************************
 // sequelizer_fast5.c
 // **********************************************************************
-// S Magierowski Jul 26 2025
-//
-// Fast5 file operations for Sequelizer
-// 
-// ./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
-// ./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose 
-
+// Sebastian Claudiusz Magierowski Jul 26 2025
+/*
+Fast5 file operations for Sequelizer.  Reads in Fast5 files and tells you what's in them.
+Example uses:
+./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
+./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose 
+*/
 #include "sequelizer_fast5.h"
 #include "core/fast5_io.h"
 #include "core/fast5_utils.h"
@@ -19,7 +19,6 @@
 #include <sys/time.h>
 #include <argp.h>
 #include <err.h>
-
 
 // Helper function to debug HDF5 file structure
 static void debug_fast5_file(const char *filename) {
@@ -278,7 +277,6 @@ static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, i
 // **********************************************************************
 // Main Function 
 // **********************************************************************
-
 int main_fast5(int argc, char *argv[]) {
 
   // ========================================================================
