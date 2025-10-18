@@ -1,0 +1,109 @@
+*~
+
+*.pb
+.idea/
+*.pyc
+*.vpd
+*.vcd
+.idea/*
+
+# ----------------------------------------------------------------------
+#  General OS / Editor cruft
+# ----------------------------------------------------------------------
+**/.DS_Store
+*.dSYM
+Thumbs.db
+Icon?
+ehthumbs.db
+*.swp
+*.swo
+*.swn
+*~
+# VS Code settings that are personal
+.vscode/*
+!.vscode/settings.json   # (team-wide settings can stay)
+
+# ----------------------------------------------------------------------
+#  Python – virtual envs, byte-code, wheels, test output
+# ----------------------------------------------------------------------
+# Virtualenvs / Conda envs created inside the repo
+.venv/
+env/
+venv*/
+*/.venv/
+*/env/
+*/venv*/
+# Conda “env” sub-dir (rare, but safe)
+envs/
+# Python byte-code / cache
+__pycache__/
+*.py[cod]
+# Editable-install egg links and metadata
+*.egg-info/
+*.egg
+# Wheels / build artifacts
+dist/
+build/
+pip-wheel-metadata/
+# PyTest / coverage / tox
+htmlcov/
+.coverage
+.cache/
+.tox/
+.pytest_cache/
+
+# ----------------------------------------------------------------------
+#  CMake / Ninja / CLion
+# ----------------------------------------------------------------------
+# Out-of-source build directories you showed in tree
+C++/**/cmake-build-*/
+*/build/
+*/CMakeCache.txt
+*/CMakeFiles/
+*/Testing/
+# Ninja
+*.ninja
+.ninja_deps
+.ninja_log
+# Generated compile_commands.json
+compile_commands.json
+cmake-build-debug/
+cmake-build-release/
+
+# ----------------------------------------------------------------------
+#  macOS crash logs / spotlight etc.
+# ----------------------------------------------------------------------
+*.crash
+*.plist
+*.localized
+
+# ----------------------------------------------------------------------
+#  Large data / models (examples—update to taste)
+# ----------------------------------------------------------------------
+# Fast5, Pod5, BAM, HDF5, ONNX, Pytorch checkpoints, etc.
+*.fa
+*.fq
+*.fasta
+*.fastq
+*.fast5
+*.pod5
+*.bam
+*.h5
+*.hdf5
+*.ckpt
+*.pth
+*.onnx
+# Raw squiggle inputs
+*.raw
+# Text or binary dumps larger than a few kB can be listed here
+
+# ----------------------------------------------------------------------
+#  Documentation build artifacts
+# ----------------------------------------------------------------------
+docs/_build/
+
+# ----------------------------------------------------------------------
+#  Jupyter notebooks—outputs (optional)
+# ----------------------------------------------------------------------
+# Uncomment if you strip outputs or keep notebooks elsewhere
+# *.ipynb
