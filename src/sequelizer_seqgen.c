@@ -3,7 +3,11 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 15 2025
 /*
-Sequence generation and signal simulation for Sequelizer.
+Generates signals from ref read sequences (either in files or auto-generated here): squiggle, raw, and event sequences.
+ squiggle: pos (pos in ref), base (from ref at pos), current (normalized current), sd (std dev of normalized current), dwell (numper of samples over which current dwells)
+ raw:      model of squiggle in terms of samples with a normal distribution;
+ event:    piecewise-lineear (i.e., no normal distribution) version of raw
+ 
 Example uses:
 ./sequelizer seqgen --help
 ./sequelizer seqgen input.fasta --output signals.fast5
@@ -17,7 +21,7 @@ Example uses:
 // **********************************************************************
 // Argument Parsing
 // **********************************************************************
-static char doc[] = "sequelizer seqgen -- Signal generation from DNA sequences\v"
+static char doc[] = "sequelizer seqgen -- Signal generation from DNA sequence reads\v"
 "EXAMPLES:\n"
 "  sequelizer seqgen input.fasta -o signals.fast5\n"
 "  sequelizer seqgen --generate --seq-length 1000 -o test.fast5\n"
@@ -68,6 +72,7 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 // Main Function
 // **********************************************************************
 int main_seqgen(int argc, char *argv[]) {
+  printf("Executing seqgen\n");
 
   // ========================================================================
   // STEP 1: PARSE COMMAND LINE ARGUMENTS AND SET DEFAULTS
