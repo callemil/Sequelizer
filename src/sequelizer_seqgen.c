@@ -3,7 +3,7 @@
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 15 2025
 /*
-Sequence generation and signal simulation for Sequelizer.
+Sequence generation and signal simulation for Sequelizer. A small change.
 Example uses:
 ./sequelizer seqgen --help
 ./sequelizer seqgen input.fasta --output signals.fast5
