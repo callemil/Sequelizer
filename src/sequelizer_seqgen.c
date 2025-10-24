@@ -11,7 +11,9 @@ Example uses:
 */
 #include "sequelizer_seqgen.h"
 #include <stdio.h>
+#include <unistd.h> // on macOS POSIX KSEQ_INIT's read() lives in <unistd.h>, not in <stdio.h>
 #include <stdbool.h>
+
 #include <argp.h>
 
 // **********************************************************************
