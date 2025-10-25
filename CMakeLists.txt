@@ -40,6 +40,7 @@ set(SEQUELIZER_SOURCES
     src/core/fast5_stats.c
     src/core/fast5_convert.c
     src/core/plot_utils.c
+    src/core/seqgen_utils.c
     src/core/util.c
 )
 
