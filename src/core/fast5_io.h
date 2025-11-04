@@ -13,10 +13,10 @@
 #include "fast5_utils.h"
 
 // Fast5 file discovery functions
-bool is_fast5_file(const char *filename);
+bool   is_fast5_file(const char *filename);
 char** find_fast5_files_recursive(const char *directory, size_t *count);
 char** find_fast5_files(const char *input_path, bool recursive, size_t *count);
-void free_file_list(char **files, size_t count);
+void   free_file_list(char **files, size_t count);
 
 // Enhanced file validation functions (from ciren)
 bool file_is_accessible(const char *filename);
@@ -34,6 +34,6 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
 
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);
-void free_fast5_signal(float *signal);
+void   free_fast5_signal(float *signal);
 
 #endif // SEQUELIZER_FAST5_IO_H
