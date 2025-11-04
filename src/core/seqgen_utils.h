@@ -15,7 +15,7 @@
 
 // IMPORTANT: Before including this header, you must include:
 // - ciren_matrix.h (defines ciren_matrix and const_ciren_matrix)
-// - netsiggen.h (defines struct squiggle_model_params, also brings in RETURN_NULL_IF via ciren.h)
+// - netsiggen.h (defines struct squiggle_gen_model_params, also brings in RETURN_NULL_IF via ciren.h)
 // - kseq.h with KSEQ_INIT() called (defines kseq_t type)
 //
 // NOTE: RETURN_NULL_IF macro comes indirectly via netsiggen.h → ciren.h → sequelizer.h
@@ -58,7 +58,7 @@ ciren_matrix sequence_to_squiggle(
   const char *base_seq,
   size_t n,
   bool rescale,
-  const struct squiggle_model_params *params
+  const struct squiggle_gen_model_params *params
 );
 
 // Generate Gaussian random value using Box-Muller transform
