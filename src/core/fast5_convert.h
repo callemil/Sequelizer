@@ -1,7 +1,7 @@
 // **********************************************************************
 // core/fast5_convert.h - Fast5 Format Conversion Functions
 // **********************************************************************
-// S Magierowski Aug 22 2025
+// Sebastian Claudiusz Magierowski Aug 22 2025
 //
 
 #ifndef SEQUELIZER_FAST5_CONVERT_H
