@@ -9,7 +9,8 @@
 #include <err.h>
 #include <stdio.h>
 #include <unistd.h>
-#include "../../../src/ciren.h"
+
+// Include ciren headers for implementation details
 #include "../../../src/ciren_matrix.h"
 #include "../../../src/netsiggen.h"
 #include "../../../src/ciren_seq_helpers.h"

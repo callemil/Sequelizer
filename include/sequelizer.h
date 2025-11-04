@@ -1,7 +1,7 @@
 // **********************************************************************
 // include/sequelizer.h
 // **********************************************************************
-// S Magierowski Jul 31 2025
+// Sebastian Claudiusz Magierowski Jul 31 2025
 // 
 #ifndef SEQUELIZER_H
 #define SEQUELIZER_H
