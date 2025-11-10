@@ -42,6 +42,7 @@ set(SEQUELIZER_SOURCES
     src/core/plot_utils.c
     src/core/seqgen_utils.c
     src/core/seq_matrix.c
+    src/core/seq_utils.c
     src/core/util.c
 )
 
