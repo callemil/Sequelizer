@@ -8,8 +8,8 @@
  letters A,C,G,T) as well as extract k-mer equivalents from reads and represent
 k-mers as integer indexes representing lexicographical order. */
 #include <string.h>
-#include <stdlib.h>   // need this for rand
-#include <time.h>     // need this for time
+#include <stdlib.h>    // need this for rand
+#include <time.h>      // need this for time
 #include "seq_utils.h"
 
 // generates a random string of length len that only
