@@ -106,12 +106,7 @@ int count_total_sequences(char **files, int nfile) {
 // **********************************************************************
 
 // Convert DNA sequence to squiggle events (current/std/dwell per base)
-ciren_matrix sequence_to_squiggle(
-  const char *base_seq,
-  size_t n,
-  bool rescale,
-  const struct squiggle_gen_model_params *params
-) {
+ciren_matrix sequence_to_squiggle(const char *base_seq, size_t n, bool rescale, const struct squiggle_gen_model_params *params) {
   RETURN_NULL_IF(NULL == base_seq, NULL);
   RETURN_NULL_IF(NULL == params, NULL);
 
