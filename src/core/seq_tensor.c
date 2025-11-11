@@ -96,6 +96,7 @@ seq_tensor* seq_tensor_create_float(size_t ndim, const size_t *shape) {
   // Set basic properties
   t->ndim = ndim;
   t->dtype = SEQ_TENSOR_FLT32;
+  t->ext_dtype = SEQ_TENSOR_EXT_NONE;  // Standard tensor
   t->element_size = sizeof(float);
   t->scale = 1.0f;
   t->zero_point = 0;
@@ -160,6 +161,7 @@ seq_tensor* seq_tensor_create_int8(size_t ndim, const size_t *shape,
   // Set basic properties
   t->ndim = ndim;
   t->dtype = SEQ_TENSOR_INT8;
+  t->ext_dtype = SEQ_TENSOR_EXT_NONE;  // Standard tensor
   t->element_size = sizeof(int8_t);
   t->scale = scale;
   t->zero_point = zero_point;
@@ -224,6 +226,7 @@ seq_tensor* seq_tensor_create_int32(size_t ndim, const size_t *shape,
   // Set basic properties
   t->ndim = ndim;
   t->dtype = SEQ_TENSOR_INT32;
+  t->ext_dtype = SEQ_TENSOR_EXT_NONE;  // Standard tensor
   t->element_size = sizeof(int32_t);
   t->scale = scale;
   t->zero_point = zero_point;
@@ -413,8 +416,10 @@ void seq_tensor_print(const seq_tensor *t) {
     default:               dtype_name = "unknown"; break;
   }
 
-  // Print shape
-  printf("seq_tensor dtype=%s shape=[", dtype_name);
+  // Print shape with ext_dtype
+  printf("seq_tensor dtype=%s ext_dtype=%s shape=[",
+         dtype_name,
+         (t->ext_dtype == SEQ_TENSOR_EXT_NONE) ? "none" : "extended");
   for (size_t i = 0; i < t->ndim; i++) {
     printf("%zu", t->shape[i]);
     if (i < t->ndim - 1) printf(",");

@@ -31,6 +31,31 @@ typedef enum {
 } seq_tensor_dtype;
 
 // **********************************************************************
+// Extension Data Type Enumeration
+// **********************************************************************
+
+/**
+ * seq_tensor_ext_dtype: Extension type for platform-specific optimizations
+ *
+ * Sequelizer uses SEQ_TENSOR_EXT_NONE for all standard tensors.
+ * This enum can be extended by higher-level libraries (e.g., ciren)
+ * to add SIMD, GPU, or other hardware-accelerated variants.
+ *
+ * Design Philosophy:
+ * - dtype indicates what the data fundamentally IS (float, int8, int32)
+ * - ext_dtype indicates HOW the data is stored/packed (standard, SIMD, GPU)
+ *
+ * Example:
+ *   dtype = SEQ_TENSOR_FLT32, ext_dtype = SEQ_TENSOR_EXT_NONE
+ *     → Standard float array
+ *   dtype = SEQ_TENSOR_FLT32, ext_dtype = CIREN_TENSOR_EXT_SIMD_SSE
+ *     → Floats packed into SSE vectors (defined in ciren)
+ */
+typedef enum {
+	SEQ_TENSOR_EXT_NONE = 0  // Standard tensor, no extensions
+} seq_tensor_ext_dtype;
+
+// **********************************************************************
 // Core Tensor Structure
 // **********************************************************************
 typedef struct seq_tensor {
@@ -41,8 +66,9 @@ typedef struct seq_tensor {
 	size_t size;            // total number of elements
 
 	// Data type information
-	seq_tensor_dtype dtype; // elem data type flag (let's you know what data type was set)
-	size_t element_size;    // sizeof(element) in bytes
+	seq_tensor_dtype dtype;          // elem data type flag (let's you know what data type was set)
+	seq_tensor_ext_dtype ext_dtype;  // Extension type (platform-specific optimizations)
+	size_t element_size;             // sizeof(element) in bytes
 
 	// Quantization parameters (only used for INT8/INT32 types)
 	float scale;            // Quantization scale factor
