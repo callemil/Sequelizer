@@ -25,34 +25,34 @@
 // Data Type Enumeration
 // **********************************************************************
 typedef enum {
-    SEQ_TENSOR_INT8,      // 8-bit signed integer (quantized inference)
-    SEQ_TENSOR_INT32,     // 32-bit signed integer (accumulators)
-    SEQ_TENSOR_FLT32      // 32-bit floating point (standard)
+	SEQ_TENSOR_INT8,      // 8-bit signed integer (quantized inference)
+	SEQ_TENSOR_INT32,     // 32-bit signed integer (accumulators)
+	SEQ_TENSOR_FLT32      // 32-bit floating point (standard)
 } seq_tensor_dtype;
 
 // **********************************************************************
 // Core Tensor Structure
 // **********************************************************************
 typedef struct seq_tensor {
-    // Dimensionality
-    size_t ndim;            // num of dim (2 for matrix, 3+ for tensors)
-    size_t *shape;          // dim sizes [malloc'd]   (2D [C,R] C: col size;           R: row size)
-    size_t *stride;         // mem strides [malloc'd] (2D [c,r] c: strd to nxt C elem; r: strd to nxt R elem)
-    size_t size;            // total number of elements
+	// Dimensionality
+	size_t ndim;            // num of dim (2 for matrix, 3+ for tensors)
+	size_t *shape;          // dim sizes [malloc'd]   (2D [C,R] C: col size;           R: row size)
+	size_t *stride;         // mem strides [malloc'd] (2D [c,r] c: strd to nxt C elem; r: strd to nxt R elem)
+	size_t size;            // total number of elements
 
-    // Data type information
-    seq_tensor_dtype dtype; // elem data type flag (let's you know what data type was set)
-    size_t element_size;    // sizeof(element) in bytes
+	// Data type information
+	seq_tensor_dtype dtype; // elem data type flag (let's you know what data type was set)
+	size_t element_size;    // sizeof(element) in bytes
 
-    // Quantization parameters (only used for INT8/INT32 types)
-    float scale;            // Quantization scale factor
-    int32_t zero_point;     // Quantization zero point
+	// Quantization parameters (only used for INT8/INT32 types)
+	float scale;            // Quantization scale factor
+	int32_t zero_point;     // Quantization zero point
 
-    // Data storage
-    void *data;             // Pointer to actual data (malloc'd)
+	// Data storage
+	void *data;             // Pointer to actual data (malloc'd)
 
-    // Memory metadata
-    uint32_t flags;         // Memory properties (alignment, ownership)
+	// Memory metadata
+	uint32_t flags;         // Memory properties (alignment, ownership)
 } seq_tensor;
 
 // **********************************************************************
@@ -86,7 +86,7 @@ seq_tensor* seq_tensor_create_float(size_t ndim, const size_t *shape);
  * @return Newly allocated tensor or NULL on failure
  */
 seq_tensor* seq_tensor_create_int8(size_t ndim, const size_t *shape,
-                                   float scale, int32_t zero_point);
+																	 float scale, int32_t zero_point);
 
 /**
  * Create an int32 accumulator tensor
@@ -98,7 +98,7 @@ seq_tensor* seq_tensor_create_int8(size_t ndim, const size_t *shape,
  * @return Newly allocated tensor or NULL on failure
  */
 seq_tensor* seq_tensor_create_int32(size_t ndim, const size_t *shape,
-                                    float scale, int32_t zero_point);
+																		float scale, int32_t zero_point);
 
 /**
  * Convenience: Create 2D float matrix with column-major layout
