@@ -12,14 +12,26 @@
 
 ## Installation
 
-### Prerequisites
+**Required:**
 ```bash
 # macOS
-brew install hdf5
-
-# Linux (Ubuntu/Debian)
-sudo apt-get install libhdf5-dev
+brew install argp-standalone hdf5
+# Ubuntu/Debian
+sudo apt-get update && sudo apt-get install -y libargp-dev libhdf5-dev libopenblas-dev pkg-config libcunit1-dev
+# Build tools
+# CMake 3.23+ and C++17 compiler required
 ```
+
+**Optional (for testing):**
+```bash
+# For plotting capabilities
+brew install gnuplot feedgnuplot  # macOS
+sudo apt-get install gnuplot      # Ubuntu
+# For unit tests
+brew install cunit                  # macOS
+sudo apt-get install libcunit1-dev  # Ubuntu
+```
+
 
 ### Build
 ```bash
