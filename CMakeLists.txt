@@ -47,6 +47,7 @@ set(SEQUELIZER_SOURCES
     src/core/seq_tensor.c
     src/core/seq_utils.c
     src/core/util.c
+    src/core/kmer_model_loader.c
 )
 
 # Sequelizer static library
@@ -61,6 +62,10 @@ if(APPLE)
 else()
   target_link_libraries(sequelizer sequelizer_static m ${HDF5_LIBRARIES} ${OPENBLAS_LIBRARY})
 endif()
+
+# Test executable
+add_executable(test_kmer_loader test/test_kmer_loader.c src/core/kmer_model_loader.c)
+target_include_directories(test_kmer_loader PRIVATE include src/core)
 
 # Install
 install(TARGETS sequelizer RUNTIME DESTINATION bin)
