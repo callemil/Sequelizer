@@ -63,9 +63,13 @@ else()
   target_link_libraries(sequelizer sequelizer_static m ${HDF5_LIBRARIES} ${OPENBLAS_LIBRARY})
 endif()
 
-# Test executable
+# Test executables
 add_executable(test_kmer_loader test/test_kmer_loader.c src/core/kmer_model_loader.c)
 target_include_directories(test_kmer_loader PRIVATE include src/core)
+
+add_executable(test_seqgen test/test_seqgen.c)
+target_include_directories(test_seqgen PRIVATE include src/core)
+target_link_libraries(test_seqgen sequelizer_static m)
 
 # Install
 install(TARGETS sequelizer RUNTIME DESTINATION bin)
