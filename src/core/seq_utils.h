@@ -7,6 +7,9 @@
 #ifndef SEQUELIZER_SEQ_UTILS_H
 #define SEQUELIZER_SEQ_UTILS_H
 
+#include <stdbool.h>
+#include <stdlib.h>
+
 char* random_str(int len);
 
 char* random_str_seed(int len, unsigned int seed);
@@ -26,5 +29,8 @@ int kmer_to_int(const char* kmer);
 void int_to_kmer(int len, int index, char* kmer);
 
 int* seq_kmers_to_ints(const char* sequence, int k, int* num_ints);
+
+int base_to_int(char c, bool allow_lower);
+int * encode_bases_to_integers(char const * seq, size_t n, size_t state_len);
 
 #endif // SEQUELIZER_SEQ_UTILS_H

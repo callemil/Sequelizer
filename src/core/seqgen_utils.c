@@ -13,7 +13,7 @@
 // Include ciren headers for implementation details
 #include "../../../src/ciren_matrix.h"
 #include "../../../src/netsiggen.h"
-#include "../../../src/ciren_seq_helpers.h"
+#include "seq_utils.h"
 #include "kseq.h"
 
 // Must declare KSEQ_INIT before including seqgen_utils.h (which uses kseq_t type)
