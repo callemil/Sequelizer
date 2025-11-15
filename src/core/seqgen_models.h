@@ -20,8 +20,10 @@
 
 // Supported signal generation model types
 typedef enum {
-  SEQGEN_MODEL_KMER,      // K-mer lookup table models
-  SEQGEN_MODEL_NEURAL,    // Neural network models (future)
+  SEQGEN_MODEL_R9_4,
+  SEQGEN_MODEL_R9_4_RNA,
+  SEQGEN_MODEL_R10,
+  SEQGEN_MODEL_KMER,
   SEQGEN_MODEL_INVALID
 } seqgen_model_type;
 
@@ -29,68 +31,60 @@ typedef enum {
 // Model Parameters
 // **********************************************************************
 
-// K-mer model parameters
-typedef struct {
+struct kmer_gen_model_params {
   const char *model_name;     // e.g., "dna_r10.4.1_e8.2_260bps"
   const char *models_dir;     // Base directory (default: "kmer_models")
+  int kmer_size;              // K-mer size (5, 6, or 9)
   float sample_rate_khz;      // Default: 4.0
-} kmer_model_params;
+};
 
-// Neural network model parameters (placeholder for future)
-typedef struct {
-  const char *model_path;     // Path to neural network weights
-  int placeholder;            // To be defined when implementing
-} neural_model_params;
+struct neural_gen_model_params {
+  int placeholder;            // For future use
+};
 
-// Unified model parameters (tagged union)
-typedef struct {
+struct seqgen_model_params {
   seqgen_model_type model_type;
   union {
-    kmer_model_params kmer;
-    neural_model_params neural;
+    struct neural_gen_model_params neural;
+    struct kmer_gen_model_params kmer;
   } params;
-} seqgen_model_params;
+};
 
 // **********************************************************************
 // Function Pointer Interface
 // **********************************************************************
 
 // Squiggle generation function pointer type
-// Takes: encoded sequence (int array), length, rescale flag, model params
+// Takes: encoded sequence (int array), length, transform_units flag, model params
 // Returns: seq_tensor [n_kmers × 3] with columns [current, stddev, dwell]
 typedef seq_tensor* (*seqgen_func_ptr)(
-  const int *encoded_sequence,
-  size_t length,
-  bool rescale,
-  const void *model_params
+  int const * sequence,
+  size_t n,
+  bool transform_units,
+  const struct seqgen_model_params * params
 );
 
 // **********************************************************************
 // Dispatcher
 // **********************************************************************
 
+// Convert model name string to enum value
+seqgen_model_type get_seqgen_model(const char *model_str);
+
 // Get the appropriate squiggle generation function for a model type
 // Returns NULL if model_type is invalid
-seqgen_func_ptr get_seqgen_func(seqgen_model_type model_type);
+seqgen_func_ptr get_seqgen_func(const seqgen_model_type model_type);
 
 // **********************************************************************
-// Model-Specific Functions (declared here, implemented elsewhere)
+// Model-Specific Functions
 // **********************************************************************
 
-// K-mer lookup implementation (in seqgen_utils.c)
-seq_tensor* kmer_lookup_squiggle(
-  const int *encoded_sequence,
-  size_t length,
-  bool rescale,
-  const void *params  // Actually kmer_model_params*
-);
+// Neural network implementations (future)
+seq_tensor* squiggle_r94(int const * sequence, size_t n, bool transform_units, const struct seqgen_model_params * params);
+seq_tensor* squiggle_r94_rna(int const * sequence, size_t n, bool transform_units, const struct seqgen_model_params * params);
+seq_tensor* squiggle_r10(int const * sequence, size_t n, bool transform_units, const struct seqgen_model_params * params);
 
-// Neural network implementation (future - in seqgen_neural.c or similar)
-seq_tensor* neural_net_squiggle(
-  const int *encoded_sequence,
-  size_t length,
-  bool rescale,
-  const void *params  // Actually neural_model_params*
-);
+// K-mer lookup implementation
+seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, const struct seqgen_model_params * params);
 
 #endif // SEQGEN_MODELS_H

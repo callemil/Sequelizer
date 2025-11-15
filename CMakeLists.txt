@@ -44,6 +44,7 @@ set(SEQUELIZER_SOURCES
     src/core/fast5_convert.c
     src/core/plot_utils.c
     src/core/seqgen_utils.c
+    src/core/seqgen_models.c
     src/core/seq_tensor.c
     src/core/seq_utils.c
     src/core/util.c
@@ -70,6 +71,10 @@ target_include_directories(test_kmer_loader PRIVATE include src/core)
 add_executable(test_seqgen test/test_seqgen.c)
 target_include_directories(test_seqgen PRIVATE include src/core)
 target_link_libraries(test_seqgen sequelizer_static m)
+
+add_executable(test_seqgen_models test/test_seqgen_models.c)
+target_include_directories(test_seqgen_models PRIVATE include src/core)
+target_link_libraries(test_seqgen_models sequelizer_static m)
 
 # Install
 install(TARGETS sequelizer RUNTIME DESTINATION bin)
