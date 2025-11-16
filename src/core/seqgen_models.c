@@ -62,24 +62,26 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
   if (!sequence || !params) return NULL;
 
   // Extract k-mer model parameters
-  const char *model_name = params->params.kmer.model_name;
-  const char *models_dir = params->params.kmer.models_dir;
-  int kmer_size = params->params.kmer.kmer_size;
-  float sample_rate_khz = params->params.kmer.sample_rate_khz;
+  const char *model_name = params->params.kmer.model_name;     // e.g., "dna_r10.4.1_e8.2_260bps"
+  const char *models_dir = params->params.kmer.models_dir;     // base directory (default: "kmer_models")
+  int kmer_size = params->params.kmer.kmer_size;               // 5, 6, or 9
+  float sample_rate_khz = params->params.kmer.sample_rate_khz; // default: 4.0
 
-  // Validate k-mer size
+  // Validate model k-mer size
   if (kmer_size <= 0 || kmer_size > 9) {
     warnx("K-mer size %d out of range [1-9]", kmer_size);
     return NULL;
   }
 
-  // Ensure sequence is long enough
+  // Ensure sequence is long enough to extract at least one k-mer
   if (n < (size_t)kmer_size) {
     warnx("Sequence length %zu shorter than k-mer size %d", n, kmer_size);
     return NULL;
   }
 
-  // STEP 1: LOAD the k-mer model file (with caching to avoid reloading)
+  // ========================================================================
+  // STEP 1: LOAD k-mer model file (with caching to avoid reloading)
+  // ========================================================================
   static kmer_model_t *cached_model = NULL;
   static char cached_model_id[512] = {0};
 
@@ -101,11 +103,13 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
 
   int loaded_kmer_size = cached_model->kmer_size;
 
+  // ========================================================================
   // STEP 2: CREATE target k-mer lookup table (decimation if needed)
+  // ========================================================================
   float *lookup_mean = NULL;
   float *lookup_stddev = NULL;
   int num_kmers = 1;
-  for (int i = 0; i < kmer_size; i++) num_kmers *= 4;
+  for (int i = 0; i < kmer_size; i++) num_kmers *= 4; // 4^kmer_size, # of desired kmer states
 
   if (kmer_size == loaded_kmer_size) {
     // Direct use - no decimation needed
@@ -153,10 +157,12 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
     return NULL;
   }
 
+  // ========================================================================
   // STEP 3: ALLOCATE output tensor [num_sequence_kmers × 3]
-  size_t num_sequence_kmers = n - kmer_size + 1;
-  size_t shape[2] = {num_sequence_kmers, 3};
-  seq_tensor *result = seq_tensor_create_float(2, shape);
+  // ========================================================================
+  size_t num_sequence_kmers = n - kmer_size + 1;          // # of kmer signal points
+  size_t shape[2] = {num_sequence_kmers, 3};              // param: current, stddev, dwell
+  seq_tensor *result = seq_tensor_create_float(2, shape); // make tensor w/ (ndim, dim sizes)
   if (!result) {
     if (kmer_size != loaded_kmer_size) {
       free(lookup_mean);
@@ -165,15 +171,17 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
     return NULL;
   }
 
-  float *data = seq_tensor_data_float(result);
+  float *data = seq_tensor_data_float(result);            // assign size to tensor's data field
 
+  // ========================================================================
   // STEP 4: PROCESS input sequence and generate squiggle tensor
-  for (size_t i = 0; i < num_sequence_kmers; i++) {
+  // ========================================================================
+  for (size_t i = 0; i < num_sequence_kmers; i++) {       // loop over kmer equivalents in i/p seq
     // Convert k-mer to index (base-4 encoding)
     int kmer_index = 0;
     for (int j = 0; j < kmer_size; j++) {
       int base = sequence[i + j];
-      if (base < 0 || base > 3) {
+      if (base < 0 || base > 3) {                         // in case you have a wonky base number
         seq_tensor_free(result);
         if (kmer_size != loaded_kmer_size) {
           free(lookup_mean);
@@ -182,19 +190,19 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
         warnx("Invalid base %d at position %zu", base, i + j);
         return NULL;
       }
-      kmer_index = kmer_index * 4 + base;
+      kmer_index = kmer_index * 4 + base;                 // compose # for kmer equivalent in i/p seq
     }
 
     // Populate row [current, stddev, dwell]
-    data[i * 3 + 0] = lookup_mean[kmer_index];
+    data[i * 3 + 0] = lookup_mean[kmer_index];            // current from (decimated) model
 
     if (lookup_stddev) {
-      data[i * 3 + 1] = lookup_stddev[kmer_index];
+      data[i * 3 + 1] = lookup_stddev[kmer_index];        // stdev from (decimated) model
     } else {
-      data[i * 3 + 1] = cached_model->default_stddev;
+      data[i * 3 + 1] = cached_model->default_stddev;     // stddev default value
     }
 
-    data[i * 3 + 2] = 10.0f * (sample_rate_khz / 4.0f);
+    data[i * 3 + 2] = 10.0f * (sample_rate_khz / 4.0f);   // dwell time (scaled), we're assuming 400 bp/s translocation rate, hence 10 4-kHz samples per level
   }
 
   // Clean up decimated lookup tables if we created them

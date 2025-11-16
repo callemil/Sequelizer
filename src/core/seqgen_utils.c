@@ -43,25 +43,19 @@ double gaussian_random(void) {
 // Sequence to Squiggle Conversion (High-Level Wrapper)
 // **********************************************************************
 
-seq_tensor* sequence_to_squiggle(
-  const char *sequence,
-  size_t length,
-  bool rescale,
-  const struct seqgen_model_params *params
-) {
+// Convert DNA sequence to squiggle events (current/std/dwell per base)
+seq_tensor* sequence_to_squiggle(const char *sequence, size_t length, bool rescale, const struct seqgen_model_params *params) {
   if (!sequence || !params) {
     warnx("Invalid parameters to sequence_to_squiggle");
     return NULL;
   }
 
-  // Encode sequence to integer array of individual bases (A=0, C=1, G=2, T=3)
-  // Note: squiggle_kmer() expects individual base values, not k-mer indices
   int *encoded = calloc(length, sizeof(int));
   if (!encoded) {
     warnx("Failed to allocate memory for sequence encoding");
     return NULL;
   }
-
+  // Encode A,C,G,T -> 0,1,2,3
   for (size_t i = 0; i < length; i++) {
     encoded[i] = base_to_int(sequence[i], true);
     if (encoded[i] < 0) {

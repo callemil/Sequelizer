@@ -31,15 +31,16 @@ typedef enum {
 // Model Parameters
 // **********************************************************************
 
+// USE k-mer model (may differ from LOAD k-mer model in kmer_model_loader.h by chosen k-mer size)
 struct kmer_gen_model_params {
   const char *model_name;     // e.g., "dna_r10.4.1_e8.2_260bps"
-  const char *models_dir;     // Base directory (default: "kmer_models")
-  int kmer_size;              // K-mer size (5, 6, or 9)
+  const char *models_dir;     // base directory (default: "kmer_models")
+  int kmer_size;              // k-mer size: CAN CHOOSE if not > kmer_size of model you LOAD (5, 6, or 9)
   float sample_rate_khz;      // Default: 4.0
 };
 
 struct neural_gen_model_params {
-  int placeholder;            // For future use
+  int placeholder;            // for future use
 };
 
 struct seqgen_model_params {

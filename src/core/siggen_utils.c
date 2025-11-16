@@ -110,7 +110,7 @@ ciren_matrix sequence_to_squiggle(const char *base_seq, size_t n, bool rescale, 
   RETURN_NULL_IF(NULL == base_seq, NULL);
   RETURN_NULL_IF(NULL == params, NULL);
 
-  int *sequence = encode_bases_to_integers(base_seq, n, 1);
+  int *sequence = encode_bases_to_integers(base_seq, n, 1); // encode A,C,G,T -> 0,1,2,3
   RETURN_NULL_IF(NULL == sequence, NULL);
 
   squiggle_gen_func_ptr squiggle_function = get_squiggle_gen_func(params->model_type);

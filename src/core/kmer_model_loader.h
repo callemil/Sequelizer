@@ -9,7 +9,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 
-// K-mer model data structure
+// LOAD k-mer model data structure
 typedef struct {
   char *name;                // Model identifier
   int kmer_size;             // 5, 6, or 9
