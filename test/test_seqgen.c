@@ -6,6 +6,7 @@
 // run:     build % ./test_seqgen
 
 #include "../src/core/seqgen_utils.h"
+#include "../src/core/seqgen_models.h"
 #include "../src/core/seq_tensor.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -22,8 +23,15 @@ int main(void) {
   const char *seq = "ACGTACGTACGT";  // 12 bases
   size_t seq_len = strlen(seq);
 
-  pore_model_params params = default_pore_model_params();
-  params.model_name = "rna_r9.4_180mv_70bps";  // 5-mer model
+  struct seqgen_model_params params = {
+    .model_type = SEQGEN_MODEL_KMER,
+    .params.kmer = {
+      .model_name = "rna_r9.4_180mv_70bps",
+      .models_dir = "kmer_models",
+      .kmer_size = 5,
+      .sample_rate_khz = 4.0
+    }
+  };
 
   seq_tensor *squiggle = sequence_to_squiggle(seq, seq_len, false, &params);
   if (!squiggle) {
@@ -106,8 +114,15 @@ int main(void) {
   const char *long_seq = "ACGTACGTACGTACGTACGTACGT";  // 24 bases
   size_t long_seq_len = strlen(long_seq);
 
-  pore_model_params params9 = default_pore_model_params();
-  params9.model_name = "dna_r10.4.1_e8.2_260bps";  // 9-mer model
+  struct seqgen_model_params params9 = {
+    .model_type = SEQGEN_MODEL_KMER,
+    .params.kmer = {
+      .model_name = "dna_r10.4.1_e8.2_260bps",
+      .models_dir = "kmer_models",
+      .kmer_size = 9,
+      .sample_rate_khz = 4.0
+    }
+  };
 
   seq_tensor *squiggle9 = sequence_to_squiggle(long_seq, long_seq_len, false, &params9);
   if (!squiggle9) {

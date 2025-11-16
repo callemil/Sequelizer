@@ -79,7 +79,7 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
     return NULL;
   }
 
-  // Load model (with static caching to avoid reloading)
+  // STEP 1: LOAD the k-mer model file (with caching to avoid reloading)
   static kmer_model_t *cached_model = NULL;
   static char cached_model_id[512] = {0};
 
@@ -99,10 +99,9 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
     cached_model_id[sizeof(cached_model_id) - 1] = '\0';
   }
 
-  // Check if loaded model matches requested k-mer size
   int loaded_kmer_size = cached_model->kmer_size;
 
-  // Create lookup table (either use directly or decimate)
+  // STEP 2: CREATE target k-mer lookup table (decimation if needed)
   float *lookup_mean = NULL;
   float *lookup_stddev = NULL;
   int num_kmers = 1;
@@ -154,10 +153,8 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
     return NULL;
   }
 
-  // Calculate number of k-mers in sequence
+  // STEP 3: ALLOCATE output tensor [num_sequence_kmers × 3]
   size_t num_sequence_kmers = n - kmer_size + 1;
-
-  // Create output tensor [num_sequence_kmers × 3]
   size_t shape[2] = {num_sequence_kmers, 3};
   seq_tensor *result = seq_tensor_create_float(2, shape);
   if (!result) {
@@ -170,7 +167,7 @@ seq_tensor* squiggle_kmer(int const * sequence, size_t n, bool transform_units, 
 
   float *data = seq_tensor_data_float(result);
 
-  // Process each k-mer position
+  // STEP 4: PROCESS input sequence and generate squiggle tensor
   for (size_t i = 0; i < num_sequence_kmers; i++) {
     // Convert k-mer to index (base-4 encoding)
     int kmer_index = 0;

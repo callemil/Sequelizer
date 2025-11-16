@@ -4,13 +4,14 @@
 // Sebastian Claudiusz Magierowski Nov 13 2025
 
 #include "seqgen_utils.h"
-#include "kmer_model_loader.h"
+#include "seqgen_models.h"
 #include "seq_tensor.h"
 #include "seq_utils.h"
 #include "../../include/sequelizer.h"
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <err.h>
 
 // **********************************************************************
 // Gaussian Random Number Generator
@@ -39,79 +40,50 @@ double gaussian_random(void) {
 }
 
 // **********************************************************************
-// Sequence to Squiggle Conversion
+// Sequence to Squiggle Conversion (High-Level Wrapper)
 // **********************************************************************
 
-seq_tensor* sequence_to_squiggle(const char *sequence, size_t length, bool rescale, const pore_model_params *params) {
-  // Model caching to avoid reloading
-  static kmer_model_t *cached_model = NULL;
-  static char cached_model_name[256] = {0};
+seq_tensor* sequence_to_squiggle(
+  const char *sequence,
+  size_t length,
+  bool rescale,
+  const struct seqgen_model_params *params
+) {
+  if (!sequence || !params) {
+    warnx("Invalid parameters to sequence_to_squiggle");
+    return NULL;
+  }
 
-  // Construct full model identifier (name, dir, sample rate)
-  char full_model_id[512];
-  snprintf(full_model_id, sizeof(full_model_id), "%s/%s", params->models_dir, params->model_name);
+  // Encode sequence to integer array of individual bases (A=0, C=1, G=2, T=3)
+  // Note: squiggle_kmer() expects individual base values, not k-mer indices
+  int *encoded = calloc(length, sizeof(int));
+  if (!encoded) {
+    warnx("Failed to allocate memory for sequence encoding");
+    return NULL;
+  }
 
-  // Check if we need to load a new model 
-  if (cached_model == NULL || strcmp(cached_model_name, full_model_id) != 0) {
-    if (cached_model) {
-      free_kmer_model(cached_model);
-    }
-    cached_model = load_kmer_model(params->models_dir, params->model_name);
-    if (!cached_model) {
-      warnx("Failed to load k-mer model: %s", full_model_id);
+  for (size_t i = 0; i < length; i++) {
+    encoded[i] = base_to_int(sequence[i], true);
+    if (encoded[i] < 0) {
+      warnx("Invalid base '%c' at position %zu", sequence[i], i);
+      free(encoded);
       return NULL;
     }
-    strncpy(cached_model_name, full_model_id, sizeof(cached_model_name) - 1);
-    cached_model_name[sizeof(cached_model_name) - 1] = '\0';
   }
 
-  // Encode sequence to k-mer indices
-  int kmer_size = cached_model->kmer_size;
-  int *kmer_indices = encode_bases_to_integers(sequence, length, kmer_size);
-  if (!kmer_indices) {
-    warnx("Failed to encode sequence to k-mer indices");
+  // Get appropriate model function via dispatcher
+  seqgen_func_ptr func = get_seqgen_func(params->model_type);
+  if (!func) {
+    warnx("Failed to get model function for type %d", params->model_type);
+    free(encoded);
     return NULL;
   }
 
-  size_t num_kmers = length - kmer_size + 1;
+  // Call model-specific function
+  seq_tensor *squiggle = func(encoded, length, rescale, params);
 
-  // Create output tensor [num_kmers × 3]
-  size_t shape[2] = {num_kmers, 3};
-  seq_tensor *squiggle = seq_tensor_create_float(2, shape);
-  if (!squiggle) {
-    free(kmer_indices);
-    warnx("Failed to allocate squiggle tensor");
-    return NULL;
-  }
-
-  float *data = seq_tensor_data_float(squiggle);
-
-  // Fill squiggle tensor [current, stddev, dwell]
-  for (size_t i = 0; i < num_kmers; i++) {
-    int kmer_idx = kmer_indices[i];
-
-    // Column 0: current level
-    data[i * 3 + 0] = cached_model->level_mean[kmer_idx];
-
-    // Column 1: stddev
-    if (cached_model->level_stddev) {
-      data[i * 3 + 1] = cached_model->level_stddev[kmer_idx];
-    } else {
-      data[i * 3 + 1] = cached_model->default_stddev;
-    }
-
-    // Column 2: dwell time (samples at reference 4kHz)
-    // Simple model: 10 samples per base = 2.5ms at 4kHz
-    data[i * 3 + 2] = 10.0f;
-  }
-
-  free(kmer_indices);
-
-  // Apply rescaling if requested
-  if (rescale) {
-    // TODO: Implement median-based normalization of current levels
-    // For now, skip rescaling
-  }
+  // Clean up
+  free(encoded);
 
   return squiggle;
 }
