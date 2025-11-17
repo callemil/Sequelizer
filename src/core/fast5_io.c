@@ -887,3 +887,503 @@ void free_fast5_signal(float *signal) {
     free(signal);
   }
 }
+
+// **********************************************************************
+// Fast5 File Writing Functions
+// **********************************************************************
+
+// Write a single-read Fast5 file
+int seq_write_fast5_single(const char* filename, seq_tensor** raw_signals,
+                           const char** read_names, int num_reads,
+                           float sample_rate_khz) {
+  // Validate parameters
+  if (!filename || !raw_signals || !read_names || num_reads <= 0) {
+    warnx("Invalid parameters to seq_write_fast5_single");
+    return -1;
+  }
+
+  hid_t file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (file_id < 0) {
+    errx(EXIT_FAILURE, "Failed to create Fast5 file: %s", filename);
+  }
+
+  double version = 1.0;
+  hid_t attr_space = H5Screate(H5S_SCALAR);
+  hid_t attr = H5Acreate2(file_id, "file_version", H5T_NATIVE_DOUBLE, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(attr, H5T_NATIVE_DOUBLE, &version);
+  H5Aclose(attr);
+  H5Sclose(attr_space);
+
+  // Add file_type attribute for single-read format
+  hid_t file_type_str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(file_type_str_type, H5T_VARIABLE);
+  H5Tset_cset(file_type_str_type, H5T_CSET_ASCII);
+  H5Tset_strpad(file_type_str_type, H5T_STR_NULLTERM);
+  hid_t file_type_space_id = H5Screate(H5S_SCALAR);
+  hid_t file_type_attr_id = H5Acreate2(file_id, "file_type", file_type_str_type, file_type_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char* file_type_value = "single-read";
+  H5Awrite(file_type_attr_id, file_type_str_type, &file_type_value);
+  H5Aclose(file_type_attr_id);
+  H5Sclose(file_type_space_id);
+  H5Tclose(file_type_str_type);
+
+  // Create parent groups first
+  hid_t raw_group_id = H5Gcreate2(file_id, "/Raw", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (raw_group_id < 0) {
+    errx(EXIT_FAILURE, "Failed to create /Raw group");
+  }
+
+  hid_t reads_group_id = H5Gcreate2(file_id, "/Raw/Reads", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (reads_group_id < 0) {
+    errx(EXIT_FAILURE, "Failed to create /Raw/Reads group");
+  }
+
+  hid_t ugk_group_id = H5Gcreate2(file_id, "/UniqueGlobalKey", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (ugk_group_id < 0) {
+    errx(EXIT_FAILURE, "Failed to create /UniqueGlobalKey group");
+  }
+
+  H5Gclose(reads_group_id);
+  H5Gclose(raw_group_id);
+  H5Gclose(ugk_group_id);
+
+  for (int read_idx = 0; read_idx < num_reads; read_idx++) {
+    if (NULL == raw_signals[read_idx]) continue;
+
+    char read_group_path[256];
+    snprintf(read_group_path, sizeof(read_group_path), "/Raw/Reads/Read_%d", read_idx);
+
+    hid_t read_group_id = H5Gcreate2(file_id, read_group_path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    if (read_group_id < 0) {
+      errx(EXIT_FAILURE, "Failed to create read group: %s", read_group_path);
+    }
+
+    // Get signal data and length from seq_tensor
+    float *signal_data = seq_tensor_data_float(raw_signals[read_idx]);
+    size_t signal_length = seq_tensor_dim(raw_signals[read_idx], 0);
+
+    hsize_t signal_dims[1] = {signal_length};
+    hid_t signal_space_id = H5Screate_simple(1, signal_dims, NULL);
+    hid_t signal_dataset_id = H5Dcreate2(read_group_id, "Signal", H5T_NATIVE_FLOAT, signal_space_id,
+                                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    if (H5Dwrite(signal_dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                 signal_data) < 0) {
+      errx(EXIT_FAILURE, "Failed to write signal data for read %d", read_idx);
+    }
+
+    uint32_t duration = (uint32_t)signal_length;
+    hid_t duration_space_id = H5Screate(H5S_SCALAR);
+    hid_t duration_attr_id = H5Acreate2(read_group_id, "duration", H5T_NATIVE_UINT32, duration_space_id,
+                                       H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(duration_attr_id, H5T_NATIVE_UINT32, &duration);
+
+    hid_t str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(str_type, strlen(read_names[read_idx]) + 1);
+    hid_t read_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t read_id_attr_id = H5Acreate2(read_group_id, "read_id", str_type, read_id_space_id,
+                                      H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(read_id_attr_id, str_type, read_names[read_idx]);
+
+    uint32_t read_number = read_idx;
+    hid_t read_number_space_id = H5Screate(H5S_SCALAR);
+    hid_t read_number_attr_id = H5Acreate2(read_group_id, "read_number", H5T_NATIVE_UINT32, read_number_space_id,
+                                          H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(read_number_attr_id, H5T_NATIVE_UINT32, &read_number);
+
+    int32_t start_mux = 2;
+    hid_t start_mux_space_id = H5Screate(H5S_SCALAR);
+    hid_t start_mux_attr_id = H5Acreate2(read_group_id, "start_mux", H5T_NATIVE_INT32, start_mux_space_id,
+                                        H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(start_mux_attr_id, H5T_NATIVE_INT32, &start_mux);
+
+    uint64_t start_time = 0;
+    hid_t start_time_space_id = H5Screate(H5S_SCALAR);
+    hid_t start_time_attr_id = H5Acreate2(read_group_id, "start_time", H5T_NATIVE_UINT64, start_time_space_id,
+                                         H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(start_time_attr_id, H5T_NATIVE_UINT64, &start_time);
+
+    H5Aclose(start_time_attr_id);
+    H5Sclose(start_time_space_id);
+    H5Aclose(start_mux_attr_id);
+    H5Sclose(start_mux_space_id);
+    H5Aclose(read_number_attr_id);
+    H5Sclose(read_number_space_id);
+    H5Aclose(read_id_attr_id);
+    H5Sclose(read_id_space_id);
+    H5Tclose(str_type);
+    H5Aclose(duration_attr_id);
+    H5Sclose(duration_space_id);
+    H5Dclose(signal_dataset_id);
+    H5Sclose(signal_space_id);
+    H5Gclose(read_group_id);
+  }
+
+  hid_t channel_group_id = H5Gcreate2(file_id, "/UniqueGlobalKey/channel_id", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  hid_t str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(str_type, 2);
+  hid_t channel_number_space_id = H5Screate(H5S_SCALAR);
+  hid_t channel_number_attr_id = H5Acreate2(channel_group_id, "channel_number", str_type, channel_number_space_id,
+                                           H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(channel_number_attr_id, str_type, "1");
+
+  double digitisation = 8192.0;
+  hid_t digitisation_space_id = H5Screate(H5S_SCALAR);
+  hid_t digitisation_attr_id = H5Acreate2(channel_group_id, "digitisation", H5T_NATIVE_DOUBLE, digitisation_space_id,
+                                         H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(digitisation_attr_id, H5T_NATIVE_DOUBLE, &digitisation);
+
+  double offset = 0.0;
+  hid_t offset_space_id = H5Screate(H5S_SCALAR);
+  hid_t offset_attr_id = H5Acreate2(channel_group_id, "offset", H5T_NATIVE_DOUBLE, offset_space_id,
+                                   H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(offset_attr_id, H5T_NATIVE_DOUBLE, &offset);
+
+  double range = 1517.25;
+  hid_t range_space_id = H5Screate(H5S_SCALAR);
+  hid_t range_attr_id = H5Acreate2(channel_group_id, "range", H5T_NATIVE_DOUBLE, range_space_id,
+                                  H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(range_attr_id, H5T_NATIVE_DOUBLE, &range);
+
+  double sampling_rate = sample_rate_khz * 1000.0;
+  hid_t sampling_rate_space_id = H5Screate(H5S_SCALAR);
+  hid_t sampling_rate_attr_id = H5Acreate2(channel_group_id, "sampling_rate", H5T_NATIVE_DOUBLE, sampling_rate_space_id,
+                                          H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(sampling_rate_attr_id, H5T_NATIVE_DOUBLE, &sampling_rate);
+
+  H5Aclose(sampling_rate_attr_id);
+  H5Sclose(sampling_rate_space_id);
+  H5Aclose(range_attr_id);
+  H5Sclose(range_space_id);
+  H5Aclose(offset_attr_id);
+  H5Sclose(offset_space_id);
+  H5Aclose(digitisation_attr_id);
+  H5Sclose(digitisation_space_id);
+  H5Aclose(channel_number_attr_id);
+  H5Sclose(channel_number_space_id);
+  H5Tclose(str_type);
+  H5Gclose(channel_group_id);
+
+  hid_t context_group_id = H5Gcreate2(file_id, "/UniqueGlobalKey/context_tags", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  str_type = H5Tcopy(H5T_C_S1);
+  const char* basename = strrchr(filename, '/') ? strrchr(filename, '/') + 1 : filename;
+  H5Tset_size(str_type, strlen(basename) + 1);
+  hid_t filename_space_id = H5Screate(H5S_SCALAR);
+  hid_t filename_attr_id = H5Acreate2(context_group_id, "filename", str_type, filename_space_id,
+                                     H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(filename_attr_id, str_type, basename);
+
+  H5Aclose(filename_attr_id);
+  H5Sclose(filename_space_id);
+  H5Tclose(str_type);
+  H5Gclose(context_group_id);
+
+  hid_t tracking_group_id = H5Gcreate2(file_id, "/UniqueGlobalKey/tracking_id", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+  str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(str_type, 20);
+  hid_t exp_start_time_space_id = H5Screate(H5S_SCALAR);
+  hid_t exp_start_time_attr_id = H5Acreate2(tracking_group_id, "exp_start_time", str_type, exp_start_time_space_id,
+                                           H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(exp_start_time_attr_id, str_type, "2025-01-01T00:00:00");
+
+  // Add required run_id attribute
+  hid_t run_id_str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(run_id_str_type, 40);
+  hid_t run_id_space_id = H5Screate(H5S_SCALAR);
+  hid_t run_id_attr_id = H5Acreate2(tracking_group_id, "run_id", run_id_str_type, run_id_space_id,
+                                   H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(run_id_attr_id, run_id_str_type, "sequelizer_synthetic_run_001");
+
+  // Add flow_cell_id (length = variable, regular string, not byte string)
+  hid_t flowcell_id_str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(flowcell_id_str_type, H5T_VARIABLE);  // Variable length
+  H5Tset_cset(flowcell_id_str_type, H5T_CSET_ASCII); // ASCII, not UTF8
+  H5Tset_strpad(flowcell_id_str_type, H5T_STR_NULLTERM);
+  hid_t flowcell_id_space_id = H5Screate(H5S_SCALAR);
+  hid_t flowcell_id_attr_id = H5Acreate2(tracking_group_id, "flow_cell_id", flowcell_id_str_type, flowcell_id_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  // For variable-length strings, you need to write a pointer to the string
+  const char* flowcell_value = "FAKE_FC_001";
+  H5Awrite(flowcell_id_attr_id, flowcell_id_str_type, &flowcell_value); // Note the &
+
+  // Add device_id (length = variable, regular string, not byte string)
+  hid_t device_id_str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(device_id_str_type, H5T_VARIABLE);  // Variable length
+  H5Tset_cset(device_id_str_type, H5T_CSET_ASCII); // ASCII, not UTF8
+  H5Tset_strpad(device_id_str_type, H5T_STR_NULLTERM);
+  hid_t device_id_space_id = H5Screate(H5S_SCALAR);
+  hid_t device_id_attr_id = H5Acreate2(tracking_group_id, "device_id", device_id_str_type, device_id_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  // For variable-length strings, you need to write a pointer to the string
+  const char* device_value = "SM001";
+  H5Awrite(device_id_attr_id, device_id_str_type, &device_value); // Note the &
+
+  H5Aclose(device_id_attr_id);
+  H5Sclose(device_id_space_id);
+  H5Tclose(device_id_str_type);
+  H5Aclose(flowcell_id_attr_id);
+  H5Sclose(flowcell_id_space_id);
+  H5Tclose(flowcell_id_str_type);
+  H5Aclose(run_id_attr_id);
+  H5Sclose(run_id_space_id);
+  H5Tclose(run_id_str_type);
+  H5Aclose(exp_start_time_attr_id);
+  H5Sclose(exp_start_time_space_id);
+  H5Tclose(str_type);
+  H5Gclose(tracking_group_id);
+
+  H5Fclose(file_id);
+  return 0;
+}
+
+// Write a multi-read Fast5 file
+int seq_write_fast5_multi(const char* filename, seq_tensor** raw_signals,
+                          const char** read_names, int num_reads,
+                          float sample_rate_khz) {
+  // Validate parameters
+  if (!filename || !raw_signals || !read_names || num_reads <= 0) {
+    warnx("Invalid parameters to seq_write_fast5_multi");
+    return -1;
+  }
+
+  hid_t file_id = H5Fcreate(filename, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (file_id < 0) {
+    errx(EXIT_FAILURE, "Failed to create Fast5 file: %s", filename);
+  }
+
+  // Add file_version attribute
+  double version = 1.0;
+  hid_t attr_space = H5Screate(H5S_SCALAR);
+  hid_t attr = H5Acreate2(file_id, "file_version", H5T_NATIVE_DOUBLE, attr_space, H5P_DEFAULT, H5P_DEFAULT);
+  H5Awrite(attr, H5T_NATIVE_DOUBLE, &version);
+  H5Aclose(attr);
+  H5Sclose(attr_space);
+
+  // Add file_type attribute for multi-read format
+  hid_t file_type_str_type = H5Tcopy(H5T_C_S1);
+  H5Tset_size(file_type_str_type, H5T_VARIABLE);
+  H5Tset_cset(file_type_str_type, H5T_CSET_ASCII);
+  H5Tset_strpad(file_type_str_type, H5T_STR_NULLTERM);
+  hid_t file_type_space_id = H5Screate(H5S_SCALAR);
+  hid_t file_type_attr_id = H5Acreate2(file_id, "file_type", file_type_str_type, file_type_space_id, H5P_DEFAULT, H5P_DEFAULT);
+  const char* file_type_value = "multi-read";
+  H5Awrite(file_type_attr_id, file_type_str_type, &file_type_value);
+  H5Aclose(file_type_attr_id);
+  H5Sclose(file_type_space_id);
+  H5Tclose(file_type_str_type);
+
+  // Process each read - create root-level read_<read_name> groups
+  for (int read_idx = 0; read_idx < num_reads; read_idx++) {
+    if (NULL == raw_signals[read_idx]) continue;
+
+    // Create read group path as read_<read_name>
+    char read_group_path[256];
+    snprintf(read_group_path, sizeof(read_group_path), "read_%s", read_names[read_idx]);
+
+    hid_t read_group_id = H5Gcreate2(file_id, read_group_path, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (read_group_id < 0) {
+      errx(EXIT_FAILURE, "Failed to create read group: %s", read_group_path);
+    }
+
+    // Create Raw subgroup under the read group
+    hid_t read_raw_group_id = H5Gcreate2(read_group_id, "Raw", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    if (read_raw_group_id < 0) {
+      errx(EXIT_FAILURE, "Failed to create Raw subgroup for read: %s", read_names[read_idx]);
+    }
+
+    // Get signal data and length from seq_tensor
+    float *signal_data = seq_tensor_data_float(raw_signals[read_idx]);
+    size_t signal_length = seq_tensor_dim(raw_signals[read_idx], 0);
+
+    // Create Signal dataset in the Raw subgroup
+    hsize_t signal_dims[1] = {signal_length};
+    hid_t signal_space_id = H5Screate_simple(1, signal_dims, NULL);
+    hid_t signal_dataset_id = H5Dcreate2(read_raw_group_id, "Signal", H5T_NATIVE_FLOAT, signal_space_id,
+                                        H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    if (H5Dwrite(signal_dataset_id, H5T_NATIVE_FLOAT, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+                 signal_data) < 0) {
+      errx(EXIT_FAILURE, "Failed to write signal data for read %s", read_names[read_idx]);
+    }
+
+    // Add read attributes to the Raw subgroup (not the read group)
+    uint32_t duration = (uint32_t)signal_length;
+    hid_t duration_space_id = H5Screate(H5S_SCALAR);
+    hid_t duration_attr_id = H5Acreate2(read_raw_group_id, "duration", H5T_NATIVE_UINT32, duration_space_id,
+                                       H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(duration_attr_id, H5T_NATIVE_UINT32, &duration);
+
+    hid_t str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(str_type, strlen(read_names[read_idx]) + 1);
+    hid_t read_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t read_id_attr_id = H5Acreate2(read_raw_group_id, "read_id", str_type, read_id_space_id,
+                                      H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(read_id_attr_id, str_type, read_names[read_idx]);
+
+    uint32_t read_number = read_idx;
+    hid_t read_number_space_id = H5Screate(H5S_SCALAR);
+    hid_t read_number_attr_id = H5Acreate2(read_raw_group_id, "read_number", H5T_NATIVE_UINT32, read_number_space_id,
+                                          H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(read_number_attr_id, H5T_NATIVE_UINT32, &read_number);
+
+    int32_t start_mux = 2;
+    hid_t start_mux_space_id = H5Screate(H5S_SCALAR);
+    hid_t start_mux_attr_id = H5Acreate2(read_raw_group_id, "start_mux", H5T_NATIVE_INT32, start_mux_space_id,
+                                        H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(start_mux_attr_id, H5T_NATIVE_INT32, &start_mux);
+
+    uint64_t start_time = 0;
+    hid_t start_time_space_id = H5Screate(H5S_SCALAR);
+    hid_t start_time_attr_id = H5Acreate2(read_raw_group_id, "start_time", H5T_NATIVE_UINT64, start_time_space_id,
+                                         H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(start_time_attr_id, H5T_NATIVE_UINT64, &start_time);
+
+    // Add run_id attribute directly to the read group
+    hid_t read_run_id_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(read_run_id_str_type, 40);
+    hid_t read_run_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t read_run_id_attr_id = H5Acreate2(read_group_id, "run_id", read_run_id_str_type, read_run_id_space_id,
+                                          H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(read_run_id_attr_id, read_run_id_str_type, "sequelizer_synthetic_run_001");
+
+    // Create channel_id group under this read
+    hid_t channel_group_id = H5Gcreate2(read_group_id, "channel_id", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    hid_t channel_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(channel_str_type, 2);
+    hid_t channel_number_space_id = H5Screate(H5S_SCALAR);
+    hid_t channel_number_attr_id = H5Acreate2(channel_group_id, "channel_number", channel_str_type, channel_number_space_id,
+                                             H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(channel_number_attr_id, channel_str_type, "1");
+
+    double digitisation = 8192.0;
+    hid_t digitisation_space_id = H5Screate(H5S_SCALAR);
+    hid_t digitisation_attr_id = H5Acreate2(channel_group_id, "digitisation", H5T_NATIVE_DOUBLE, digitisation_space_id,
+                                           H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(digitisation_attr_id, H5T_NATIVE_DOUBLE, &digitisation);
+
+    double offset = 0.0;
+    hid_t offset_space_id = H5Screate(H5S_SCALAR);
+    hid_t offset_attr_id = H5Acreate2(channel_group_id, "offset", H5T_NATIVE_DOUBLE, offset_space_id,
+                                     H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(offset_attr_id, H5T_NATIVE_DOUBLE, &offset);
+
+    double range = 1517.25;
+    hid_t range_space_id = H5Screate(H5S_SCALAR);
+    hid_t range_attr_id = H5Acreate2(channel_group_id, "range", H5T_NATIVE_DOUBLE, range_space_id,
+                                    H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(range_attr_id, H5T_NATIVE_DOUBLE, &range);
+
+    double sampling_rate = sample_rate_khz * 1000.0;
+    hid_t sampling_rate_space_id = H5Screate(H5S_SCALAR);
+    hid_t sampling_rate_attr_id = H5Acreate2(channel_group_id, "sampling_rate", H5T_NATIVE_DOUBLE, sampling_rate_space_id,
+                                            H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(sampling_rate_attr_id, H5T_NATIVE_DOUBLE, &sampling_rate);
+
+    // Create context_tags group under this read
+    hid_t context_group_id = H5Gcreate2(read_group_id, "context_tags", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    hid_t context_str_type = H5Tcopy(H5T_C_S1);
+    const char* basename = strrchr(filename, '/') ? strrchr(filename, '/') + 1 : filename;
+    H5Tset_size(context_str_type, strlen(basename) + 1);
+    hid_t filename_space_id = H5Screate(H5S_SCALAR);
+    hid_t filename_attr_id = H5Acreate2(context_group_id, "filename", context_str_type, filename_space_id,
+                                       H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(filename_attr_id, context_str_type, basename);
+
+    // Create tracking_id group under this read
+    hid_t tracking_group_id = H5Gcreate2(read_group_id, "tracking_id", H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+
+    hid_t tracking_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(tracking_str_type, 20);
+    hid_t exp_start_time_space_id = H5Screate(H5S_SCALAR);
+    hid_t exp_start_time_attr_id = H5Acreate2(tracking_group_id, "exp_start_time", tracking_str_type, exp_start_time_space_id,
+                                             H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(exp_start_time_attr_id, tracking_str_type, "2025-01-01T00:00:00");
+
+    // Add required run_id attribute
+    hid_t run_id_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(run_id_str_type, 40);
+    hid_t run_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t run_id_attr_id = H5Acreate2(tracking_group_id, "run_id", run_id_str_type, run_id_space_id,
+                                     H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(run_id_attr_id, run_id_str_type, "sequelizer_synthetic_run_001");
+
+    // Add flow_cell_id (variable length string)
+    hid_t flowcell_id_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(flowcell_id_str_type, H5T_VARIABLE);
+    H5Tset_cset(flowcell_id_str_type, H5T_CSET_ASCII);
+    H5Tset_strpad(flowcell_id_str_type, H5T_STR_NULLTERM);
+    hid_t flowcell_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t flowcell_id_attr_id = H5Acreate2(tracking_group_id, "flow_cell_id", flowcell_id_str_type, flowcell_id_space_id, H5P_DEFAULT, H5P_DEFAULT);
+    const char* flowcell_value = "FAKE_FC_001";
+    H5Awrite(flowcell_id_attr_id, flowcell_id_str_type, &flowcell_value);
+
+    // Add device_id (variable length string)
+    hid_t device_id_str_type = H5Tcopy(H5T_C_S1);
+    H5Tset_size(device_id_str_type, H5T_VARIABLE);
+    H5Tset_cset(device_id_str_type, H5T_CSET_ASCII);
+    H5Tset_strpad(device_id_str_type, H5T_STR_NULLTERM);
+    hid_t device_id_space_id = H5Screate(H5S_SCALAR);
+    hid_t device_id_attr_id = H5Acreate2(tracking_group_id, "device_id", device_id_str_type, device_id_space_id, H5P_DEFAULT, H5P_DEFAULT);
+    const char* device_value = "SM001";
+    H5Awrite(device_id_attr_id, device_id_str_type, &device_value);
+
+    // Clean up all resources for this read
+    H5Aclose(device_id_attr_id);
+    H5Sclose(device_id_space_id);
+    H5Tclose(device_id_str_type);
+    H5Aclose(flowcell_id_attr_id);
+    H5Sclose(flowcell_id_space_id);
+    H5Tclose(flowcell_id_str_type);
+    H5Aclose(run_id_attr_id);
+    H5Sclose(run_id_space_id);
+    H5Tclose(run_id_str_type);
+    H5Aclose(exp_start_time_attr_id);
+    H5Sclose(exp_start_time_space_id);
+    H5Tclose(tracking_str_type);
+    H5Gclose(tracking_group_id);
+
+    H5Aclose(filename_attr_id);
+    H5Sclose(filename_space_id);
+    H5Tclose(context_str_type);
+    H5Gclose(context_group_id);
+
+    H5Aclose(sampling_rate_attr_id);
+    H5Sclose(sampling_rate_space_id);
+    H5Aclose(range_attr_id);
+    H5Sclose(range_space_id);
+    H5Aclose(offset_attr_id);
+    H5Sclose(offset_space_id);
+    H5Aclose(digitisation_attr_id);
+    H5Sclose(digitisation_space_id);
+    H5Aclose(channel_number_attr_id);
+    H5Sclose(channel_number_space_id);
+    H5Tclose(channel_str_type);
+    H5Gclose(channel_group_id);
+
+    H5Aclose(start_time_attr_id);
+    H5Sclose(start_time_space_id);
+    H5Aclose(start_mux_attr_id);
+    H5Sclose(start_mux_space_id);
+    H5Aclose(read_number_attr_id);
+    H5Sclose(read_number_space_id);
+    H5Aclose(read_id_attr_id);
+    H5Sclose(read_id_space_id);
+    H5Tclose(str_type);
+    H5Aclose(duration_attr_id);
+    H5Sclose(duration_space_id);
+    H5Aclose(read_run_id_attr_id);
+    H5Sclose(read_run_id_space_id);
+    H5Tclose(read_run_id_str_type);
+    H5Dclose(signal_dataset_id);
+    H5Sclose(signal_space_id);
+    H5Gclose(read_raw_group_id);
+    H5Gclose(read_group_id);
+  }
+
+  H5Fclose(file_id);
+  return 0;
+}

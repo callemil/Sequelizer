@@ -57,6 +57,7 @@ Generates signals from read sequences: squiggle, raw, and event sequences.
 #include "core/seq_utils.h"
 #include "core/seq_tensor.h"
 #include "core/kseq.h"         // lightweight FASTA/FASTQ parser from klib
+#include "core/fast5_io.h"     // Fast5 file writing functions
 
 KSEQ_INIT(int, read) // create a kseq parser that reads from an int fd using the standard C read() system call
 
@@ -341,7 +342,12 @@ int main_seqgen(int argc, char *argv[]) {
 
   // Validate --fast5 constraints
   if (arguments.output_fast5) {
-    errx(EXIT_FAILURE, "Fast5 output not yet implemented in sequelizer. Use 'ciren seqgen' for Fast5 generation.");
+    if (!arguments.generate_raw) {
+      errx(EXIT_FAILURE, "--fast5 flag requires --raw flag (cannot output squiggle or event modes to Fast5)");
+    }
+    if (NULL == arguments.output_filename) {
+      errx(EXIT_FAILURE, "--fast5 flag requires -o output filename (cannot output Fast5 to stdout)");
+    }
   }
 
   // Validate --save-text constraints
@@ -433,8 +439,18 @@ int main_seqgen(int argc, char *argv[]) {
     srand(arguments.seed);
   }
 
-  // TODO: Fast5 mode support (not yet implemented)
-  // When implemented, this will collect signals for Fast5 output
+  // Fast5 mode: prepare arrays to collect data
+  seq_tensor **fast5_raw_signals = NULL;
+  const char **fast5_read_names = NULL;
+  int fast5_read_count = 0;
+
+  if (arguments.output_fast5) {
+    fast5_raw_signals = calloc(fast5_capacity, sizeof(seq_tensor*));
+    fast5_read_names = calloc(fast5_capacity, sizeof(char*));
+    if (NULL == fast5_raw_signals || NULL == fast5_read_names) {
+      errx(EXIT_FAILURE, "Failed to allocate memory for Fast5 data collection");
+    }
+  }
 
   // ========================================================================
   // STEP 4: FLAT UNIFIED PROCESSING LOOP (handles both synthetic and file-based modes)
@@ -532,8 +548,10 @@ int main_seqgen(int argc, char *argv[]) {
     );
 
     if (NULL != squiggle) {
-      // Write sequence identifier to output
-      fprintf(arguments.output, "#%s\n", seq->name.s);
+      // Write sequence identifier to output (skip for Fast5 mode unless save_text is enabled)
+      if (!arguments.output_fast5 || arguments.save_text) {
+        fprintf(arguments.output, "#%s\n", seq->name.s);
+      }
 
       // ====================================================================
       // STEP 4.4: Generate final output based on user's requested format
@@ -542,14 +560,41 @@ int main_seqgen(int argc, char *argv[]) {
         // RAW MODE: Convert squiggle events to time-series samples with Gaussian noise
         seq_tensor *raw_signal = squiggle_to_raw(squiggle, arguments.sample_rate_khz);
         if (NULL != raw_signal) {
-          // Text mode: output to file/stdout
-          fprintf(arguments.output, "sample_index\traw_value\n");
-          float *raw_data = seq_tensor_data_float(raw_signal);
-          size_t num_samples = seq_tensor_dim(raw_signal, 0);
-          for (size_t j = 0; j < num_samples; j++) {
-            fprintf(arguments.output, "%zu\t%3.6f\n", j, raw_data[j]);
+          if (arguments.output_fast5) {
+            // Fast5 mode: check capacity and expand if needed
+            if (fast5_read_count >= fast5_capacity) {
+              fast5_capacity *= 2;
+              fast5_raw_signals = realloc(fast5_raw_signals, fast5_capacity * sizeof(seq_tensor*));
+              fast5_read_names = realloc(fast5_read_names, fast5_capacity * sizeof(char*));
+              if (NULL == fast5_raw_signals || NULL == fast5_read_names) {
+                errx(EXIT_FAILURE, "Failed to expand Fast5 data arrays");
+              }
+            }
+
+            // Store the tensor and read name (we own these now)
+            fast5_raw_signals[fast5_read_count] = raw_signal;
+            fast5_read_names[fast5_read_count] = strdup(seq->name.s);
+            fast5_read_count++;
+
+            // Also output text if save_text is enabled
+            if (arguments.save_text) {
+              fprintf(arguments.output, "sample_index\traw_value\n");
+              float *raw_data = seq_tensor_data_float(raw_signal);
+              size_t num_samples = seq_tensor_dim(raw_signal, 0);
+              for (size_t j = 0; j < num_samples; j++) {
+                fprintf(arguments.output, "%zu\t%3.6f\n", j, raw_data[j]);
+              }
+            }
+          } else {
+            // Text mode: output to file/stdout then free
+            fprintf(arguments.output, "sample_index\traw_value\n");
+            float *raw_data = seq_tensor_data_float(raw_signal);
+            size_t num_samples = seq_tensor_dim(raw_signal, 0);
+            for (size_t j = 0; j < num_samples; j++) {
+              fprintf(arguments.output, "%zu\t%3.6f\n", j, raw_data[j]);
+            }
+            seq_tensor_free(raw_signal);
           }
-          seq_tensor_free(raw_signal);
         }
       } else if (arguments.generate_event) {
         // EVENT MODE: Convert squiggle to piecewise-constant signal (no noise)
@@ -638,9 +683,37 @@ int main_seqgen(int argc, char *argv[]) {
     }
   }
 
-  // TODO: Fast5 output support
-  // When implemented, this section will write collected signals to Fast5 format
-  // For now, use 'ciren seqgen' for Fast5 generation capabilities
+  // Write Fast5 file if requested
+  if (arguments.output_fast5 && fast5_read_count > 0) {
+    if (fast5_read_count == 1) {
+      seq_write_fast5_single(arguments.output_filename,
+                            fast5_raw_signals,
+                            fast5_read_names,
+                            fast5_read_count,
+                            arguments.sample_rate_khz);
+    } else {
+      seq_write_fast5_multi(arguments.output_filename,
+                           fast5_raw_signals,
+                           fast5_read_names,
+                           fast5_read_count,
+                           arguments.sample_rate_khz);
+    }
+
+    printf("Wrote %d reads to Fast5 file: %s\n",
+           fast5_read_count, arguments.output_filename);
+
+    // Clean up Fast5 data
+    for (int i = 0; i < fast5_read_count; i++) {
+      if (fast5_raw_signals[i]) {
+        seq_tensor_free(fast5_raw_signals[i]);
+      }
+      if (fast5_read_names[i]) {
+        free((void*)fast5_read_names[i]);
+      }
+    }
+    free(fast5_raw_signals);
+    free(fast5_read_names);
+  }
 
   // Close reference file if it was opened
   if (arguments.reference_file != NULL) {
