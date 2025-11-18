@@ -2,11 +2,11 @@
 // core/seqgen_models.h - Signal Generation Model Dispatcher
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Nov 14 2025
-//
-// Dispatcher pattern for signal generation models. Allows different model
-// types (k-mer lookup, neural networks) to be used through a unified
-// function pointer interface.
-
+/*
+Dispatcher pattern for signal generation models. Allows different model
+ types (k-mer lookup, neural networks) to be used through a unified
+ function pointer interface.
+*/
 #ifndef SEQGEN_MODELS_H
 #define SEQGEN_MODELS_H
 

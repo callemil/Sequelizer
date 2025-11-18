@@ -9,6 +9,7 @@ Generates signals from read sequences: squiggle, raw, and event sequences.
  event:    is just a piecewise-constant (i.e., no normal distribution) version of raw
 
  Example uses:
+ List models (from build dir)    sequelizer seqgen --models-dir=../kmer_models --list-models
  Produce squiggle:               sequelizer seqgen ../reads/sebastian_squiggles.fa
  Squiggle to file:               sequelizer seqgen ../reads/sebastian_squiggles.fa -o seb.out
  Produce raw:                    sequelizer seqgen --raw ../reads/sebastian_squiggles.fa
@@ -35,6 +36,9 @@ Generates signals from read sequences: squiggle, raw, and event sequences.
  Save BOTH fast5 & txt:              sequelizer seqgen --raw --fast5 --save-text --generate --seq-length 50 --num-sequences 1 --reference debug_ref.fa -o debug_signals.fast5
 
  Notes:
+  - design: Input (FASTA or synthetic) -> sequelizer_seqgen.c (CLI tool) -> seqgen_utils.c (high-level wrapper) ->
+            seqgen_models.c (dispatcher) -> squiggle_kmer() (k-mer lookup table) -> 
+            kmer_model_loader.c (runtime model loading) -> Output: squiggle -> raw/event -> Fast5/text
   - read names preserved: each read keeps its original FASTA header name
   - limit enforcement: --limit applies across ALL files, not per file
 
@@ -44,13 +48,15 @@ Generates signals from read sequences: squiggle, raw, and event sequences.
   - One output format per run (squiggle OR raw OR event)
 */
 #include <stdio.h>
-#include <unistd.h> // on macOS POSIX read() lives in <unistd.h>, not in <stdio.h>
+#include <unistd.h>     // on macOS POSIX read() lives in <unistd.h>, not in <stdio.h>
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <err.h>
 #include <argp.h>
+#include <dirent.h>     // For directory scanning (--list_models)
+#include <sys/stat.h>   // For stat() to check if directory (--list_models)
 
 #include "core/seqgen_models.h"
 #include "core/seqgen_utils.h"
@@ -123,6 +129,121 @@ static void kseq_destroy_synthetic(kseq_t *seq) {
 }
 
 // **********************************************************************
+// Helper functions for model discovery
+// **********************************************************************
+
+// Detect k-mer size from a model directory by checking for model files
+static int detect_kmer_size(const char *model_path) {
+  char file_path[1024];
+
+  // Check for modern format files (9mer, 5mer)
+  snprintf(file_path, sizeof(file_path), "%s/9mer_levels_v1.txt", model_path);
+  if (access(file_path, F_OK) == 0) return 9;
+
+  snprintf(file_path, sizeof(file_path), "%s/5mer_levels_v1.txt", model_path);
+  if (access(file_path, F_OK) == 0) return 5;
+
+  // Check for legacy .model files
+  snprintf(file_path, sizeof(file_path), "%s/template_median68pA.model", model_path);
+  if (access(file_path, F_OK) != 0) {
+    snprintf(file_path, sizeof(file_path), "%s/template_median69pA.model", model_path);
+    if (access(file_path, F_OK) != 0) {
+      return 0; // No model files found
+    }
+  }
+
+  // For legacy models, infer k-mer size from directory name
+  if (strstr(model_path, "6mer")) return 6;
+  if (strstr(model_path, "5mer")) return 5;
+  if (strstr(model_path, "9mer")) return 9;
+
+  return 0; // Unknown k-mer size
+}
+
+// List all available k-mer models in the models directory
+static void list_available_models(const char *models_dir) {
+  printf("Available K-mer Models (in %s/):\n\n", models_dir);
+
+  // Open the main models directory
+  DIR *dir = opendir(models_dir);
+  if (!dir) {
+    warnx("Cannot open models directory: %s", models_dir);
+    printf("  (No models directory found)\n");
+    return;
+  }
+
+  int model_count = 0;
+  struct dirent *entry;
+
+  // Scan top-level entries
+  while ((entry = readdir(dir)) != NULL) {
+    // Skip hidden files and . / ..
+    if (entry->d_name[0] == '.') continue;
+
+    char model_path[1024];
+    snprintf(model_path, sizeof(model_path), "%s/%s", models_dir, entry->d_name);
+
+    struct stat st;
+    if (stat(model_path, &st) != 0 || !S_ISDIR(st.st_mode)) continue;
+
+    // Check if this is a model directory or contains subdirectories (like legacy/)
+    int kmer_size = detect_kmer_size(model_path);
+
+    if (kmer_size > 0) {
+      // Direct model directory
+      printf("  %s (%d-mer)\n", entry->d_name, kmer_size);
+      model_count++;
+    } else if (strcmp(entry->d_name, "legacy") == 0) {
+      // Special handling for legacy subdirectory
+      printf("\n  Legacy models:\n");
+      DIR *legacy_dir = opendir(model_path);
+      if (legacy_dir) {
+        struct dirent *legacy_entry;
+        while ((legacy_entry = readdir(legacy_dir)) != NULL) {
+          if (legacy_entry->d_name[0] == '.') continue;
+
+          char legacy_model_path[1024];
+          snprintf(legacy_model_path, sizeof(legacy_model_path),
+                  "%s/%s", model_path, legacy_entry->d_name);
+
+          struct stat legacy_st;
+          if (stat(legacy_model_path, &legacy_st) != 0 ||
+              !S_ISDIR(legacy_st.st_mode)) continue;
+
+          int legacy_kmer_size = detect_kmer_size(legacy_model_path);
+          if (legacy_kmer_size > 0) {
+            printf("    legacy/%s (%d-mer)\n",
+                   legacy_entry->d_name, legacy_kmer_size);
+            model_count++;
+          }
+        }
+        closedir(legacy_dir);
+      }
+    }
+  }
+  closedir(dir);
+
+  if (model_count == 0) {
+    printf("  (No k-mer models found)\n");
+  }
+
+  printf("\nNeural Network Models:\n");
+  printf("  squiggle_r94 (not yet implemented)\n");
+  printf("  squiggle_r94_rna (not yet implemented)\n");
+  printf("  squiggle_r10 (not yet implemented)\n");
+
+  printf("\nDefault model: rna_r9.4_180mv_70bps (5-mer)\n");
+  printf("\nUsage:\n");
+  printf("  --model <name>           Specify model name\n");
+  printf("  --kmer-size <5|6|9>      Specify k-mer size (default: 5)\n");
+  printf("  --models-dir <path>      Custom models directory (default: kmer_models)\n");
+
+  printf("\nExamples:\n");
+  printf("  sequelizer seqgen --model dna_r10.4.1_e8.2_260bps --kmer-size 9 input.fa\n");
+  printf("  sequelizer seqgen --model legacy/legacy_r9.4_180mv_450bps_6mer --kmer-size 6 input.fa\n");
+}
+
+// **********************************************************************
 // Helper function to count sequences across files
 // **********************************************************************
 
@@ -153,7 +274,9 @@ static int count_total_sequences(char **files, int nfile) {
 static char doc[] = "sequelizer seqgen -- Signal generation from DNA sequence reads\v"
 "EXAMPLES:\n"
 "  sequelizer seqgen reads.fa\n"
-"  sequelizer seqgen -g --num-sequences 5 --seq-length 100";
+"  sequelizer seqgen -g --num-sequences 5 --seq-length 100\n"
+"  sequelizer seqgen --list-models\n"
+"  sequelizer seqgen --model dna_r10.4.1_e8.2_260bps --kmer-size 9 reads.fa";
 
 static char args_doc[] = "fasta [fasta ...]";
 
@@ -176,6 +299,7 @@ static struct argp_option options[] = {
   {"seed",          'S', "seed",       0, "Random seed for reproducible generation (optional)"},
   {"reference",     'R', "filename",   0, "Save sequences to reference FASTA file (use with --generate or multiple inputs)"},
   {"save-text",     'T', 0,            0, "Also save text format when using --fast5 (creates .txt companion file)"},
+  {"list-models",   'M', 0,            0, "List available k-mer models and exit"},
   {0}
 };
 
@@ -285,6 +409,10 @@ static int parse_arg(int key, char *arg, struct argp_state *state) {
     case 'T':
       arguments->save_text = true;
       break;
+    case 'M':
+      // List models and exit
+      list_available_models(arguments->models_dir);
+      exit(0);
     case ARGP_KEY_NO_ARGS:
       if (!arguments->generate_sequences) {
         argp_usage(state);

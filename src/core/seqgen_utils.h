@@ -2,15 +2,15 @@
 // core/seqgen_utils.h - Shared Signal Generation Utilities
 // **********************************************************************
 // Sebastian Claudiusz Magierowski Oct 24 2025
-//
-// Shared utilities for signal generation from DNA sequences, used by both
-// ciren_seqgen and sequelizer_seqgen. Provides kseq helpers, sequence
-// counting, and signal conversion functions (squiggle -> raw/event).
+/*
+Shared utilities for signal generation from DNA sequences, used by both
+ ciren_seqgen and sequelizer_seqgen. Provides kseq helpers, sequence
+ counting, and signal conversion functions (squiggle -> raw/event).
 
-// user -> sequence_to_squiggle()               -> squiggle_kmer() -> seq_tensor [n_kmers x 3]
-//           encode,                           '-> squiggle_r94()
-//           get_seqgen_func() (dispatcher)    
-
+ user -> sequence_to_squiggle()               -> squiggle_kmer() -> seq_tensor [n_kmers x 3]
+           encode,                           '-> squiggle_r94() '
+           get_seqgen_func() (dispatcher)    
+*/
 #ifndef SEQUELIZER_SEQGEN_UTILS_H
 #define SEQUELIZER_SEQGEN_UTILS_H
 
