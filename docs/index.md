@@ -24,20 +24,6 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
   </div>
 ---
 
-## Quick Start
-
-```bash
-# Build Sequelizer
-mkdir build && cd build
-cmake .. && cmake --build .
-# Analyze Fast5 files
-./sequelizer fast5 data.fast5
-./sequelizer fast5 /path/to/dataset/ --recursive --verbose
-# Extract raw signals
-./sequelizer convert data.fast5 --to raw
-./sequelizer convert /path/to/dataset/ --to raw --recursive --all
-```
-
 ## What is Sequelizer?
 
 Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysis. It provides robust, efficient tools for:
@@ -85,45 +71,16 @@ Extract raw signals from Fast5 files for downstream analysis.
 
 ## Documentation
 
+### Getting Started
+- **[Getting Started](getting-started.md)** - Installation, build instructions, and first steps
+
 ### User Guides
 - **[Commands Reference](sequelizer_commands.md)** - Complete usage guide for all commands
 - **[Fast5 Compatibility](fast5_compatibility.md)** - Format support and troubleshooting
 
 ### Technical Documentation
-- **[Build Instructions](#build-system)** - Compilation and dependencies
 - **[Architecture Overview](#architecture)** - Core design and extension points
 - **[Integration Guide](#integration)** - Using Sequelizer in pipelines
-
-## Build System
-
-### Requirements
-- **CMake 3.23+** with C17 compiler support
-- **HDF5 library** for Fast5 file format support
-
-### macOS Setup
-```bash
-# Install dependencies
-brew install hdf5
-# Build Sequelizer
-mkdir build && cd build
-cmake .. && cmake --build .
-# Executable: build/sequelizer
-```
-
-### Linux Setup
-```bash
-# Ubuntu/Debian
-sudo apt-get install libhdf5-dev cmake
-# CentOS/RHEL  
-sudo yum install hdf5-devel cmake
-# Build
-mkdir build && cd build
-cmake .. && cmake --build .
-```
-
-### Build Targets
-- `sequelizer` - Main executable with all subcommands
-- `sequelizer_static` - Static library for integration
 
 ## Architecture
 
