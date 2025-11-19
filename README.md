@@ -53,4 +53,4 @@ cmake .. && cmake --build .
 
 ---
 
-**[📖 Full Documentation](docs/index.md)** • **[Command Reference](docs/sequelizer_commands.md)** • **[Fast5 Compatibility](docs/fast5_compatibility.md)**
+**[📖 Full Documentation](https://emilitronic.github.io/Sequelizer/)** • **[🚀 Getting Started](https://emilitronic.github.io/Sequelizer/getting-started)** • **[Command Reference](https://emilitronic.github.io/Sequelizer/sequelizer_commands)** • **[Fast5 Compatibility](https://emilitronic.github.io/Sequelizer/fast5_compatibility)**
