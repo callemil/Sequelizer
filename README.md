@@ -4,7 +4,12 @@
   <img alt="sequelizer" src="docs/sequelizer.png" width="20%" height="20%">
 </picture>
 
-**C toolkit for DNA sequence analysis and nanopore data processing**
+**Nanopore bioinformatics for edge computing**
+
+Analyze DNA sequences in real-time, on-device. Sequelizer brings efficient
+bioinformatics to embedded sequencers, smartphones, and edge servers -
+processing nanopore data streams as they're generated, not hours later in
+the cloud.
 
 </div>
 
