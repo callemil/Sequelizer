@@ -6,14 +6,17 @@
 
 **Nanopore bioinformatics for edge computing**
 
-Analyze DNA sequences in real-time, on-device. Sequelizer brings efficient
-bioinformatics to embedded sequencers, smartphones, and edge servers -
-processing nanopore data streams as they're generated, not hours later in
-the cloud.
-
 </div>
 
 ---
+
+## About
+
+Analyze DNA sequences in real-time, on-device, across the edge network. 
+
+Sequelizer brings efficient bioinformatics to embedded sequencers, smartphones, and edge servers -
+processing nanopore data streams as they're generated, not hours later in the cloud.
+
 
 ## Installation
 
@@ -30,8 +33,8 @@ sudo apt-get update && sudo apt-get install -y libargp-dev libhdf5-dev libopenbl
 **Optional (for testing):**
 ```bash
 # For plotting capabilities
-brew install gnuplot feedgnuplot  # macOS
-sudo apt-get install gnuplot      # Ubuntu
+brew install gnuplot feedgnuplot    # macOS
+sudo apt-get install gnuplot        # Ubuntu
 # For unit tests
 brew install cunit                  # macOS
 sudo apt-get install libcunit1-dev  # Ubuntu
@@ -42,18 +45,23 @@ sudo apt-get install libcunit1-dev  # Ubuntu
 ```bash
 mkdir build && cd build
 cmake .. && cmake --build .
+cd ..  # Return to sequelizer directory
 ```
 
 ### Quick Start
+Run commands from the `sequelizer/` directory (not `build/`):
 ```bash
 # Analyze Fast5 files
-./sequelizer fast5 data.fast5 --recursive --verbose
+./build/sequelizer fast5 data.fast5 --recursive --verbose
 
 # Convert to text format
-./sequelizer convert data.fast5 --to raw
+./build/sequelizer convert data.fast5 --to raw
 
 # Plot signals
-./sequelizer plot signals.txt
+./build/sequelizer plot signals.txt
+
+# Generate sequences (requires kmer_models/)
+./build/sequelizer seqgen -M
 ```
 
 ---
