@@ -26,7 +26,7 @@ description: Open-source C toolkit for DNA sequence analysis and nanopore data p
 
 ## What is Sequelizer?
 
-Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysis. It provides robust, efficient tools for:
+Sequelizer is a C-based toolkit designed for nanopore DNA/RNA sequencing analysis. It provides robust, efficient means for:
 
 - **Fast5 file analysis** - Comprehensive metadata extraction and format validation
 - **Signal conversion** - Raw signal extraction for downstream analysis  
