@@ -1,0 +1,4 @@
+source "https://rubygems.org"
+
+# This gem installs Jekyll and all necessary GitHub Pages dependencies.
+gem "github-pages", "~> 232", group: :jekyll_plugins

@@ -101,9 +101,12 @@ cmake-build-release/
 #  Documentation build artifacts
 # ----------------------------------------------------------------------
 docs/_build/
+# Ignore Jekyll output directory
+docs/_site
 
 # ----------------------------------------------------------------------
 #  Jupyter notebooks—outputs (optional)
 # ----------------------------------------------------------------------
 # Uncomment if you strip outputs or keep notebooks elsewhere
 # *.ipynb
+
