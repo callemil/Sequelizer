@@ -481,8 +481,8 @@
                     <span>Sequelizer</span>
                 </a>
                 <nav>
-                    <a href="{{ '/sequelizer_commands.html' | relative_url }}">Commands</a>
-                    <a href="{{ '/fast5_compatibility.html' | relative_url }}">Compatibility</a>
+                    <a href="{{ '/commands/fast5.html' | relative_url }}">Commands</a>
+                    <a href="{{ '/guides/examples.html' | relative_url }}">Guides</a>
                     <a href="https://github.com/callemil/Sequelizer">GitHub</a>
                 </nav>
             </div>
@@ -500,15 +500,9 @@
                 </div>
 
                 <div class="sidebar-section">
-                    <button class="sidebar-toggle" data-target="getting-started-section">
-                        <span class="toggle-icon">+</span>
-                        <span>Getting Started</span>
-                    </button>
-                    <div id="getting-started-section" class="sidebar-subsection collapsed">
-                        <a href="{{ '/getting-started.html' | relative_url }}" class="sidebar-item {% if page.url contains 'getting-started' %}active{% endif %}">
-                            Installation & Setup
-                        </a>
-                    </div>
+                    <a href="{{ '/getting-started.html' | relative_url }}" class="sidebar-item {% if page.url contains 'getting-started' %}active{% endif %}">
+                        Getting Started
+                    </a>
                 </div>
 
                 <div class="sidebar-section">
@@ -517,25 +511,37 @@
                         <span>Commands</span>
                     </button>
                     <div id="commands-section" class="sidebar-subsection collapsed">
-                        <a href="{{ '/sequelizer_commands.html' | relative_url }}" class="sidebar-item {% if page.url contains 'sequelizer_commands' %}active{% endif %}">
-                            Commands Reference
+                        <a href="{{ '/commands/fast5.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'commands/fast5' %}active{% endif %}">
+                            fast5
                         </a>
-                        <a href="{{ '/sequelizer_commands.html#sequelizer-fast5---fast5-file-analysis' | relative_url }}" class="sidebar-item indent">
-                            fast5 - File Analysis
+                        <a href="{{ '/commands/convert.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'commands/convert' %}active{% endif %}">
+                            convert
                         </a>
-                        <a href="{{ '/sequelizer_commands.html#sequelizer-convert---fast5-format-conversion' | relative_url }}" class="sidebar-item indent">
-                            convert - Format Conversion
+                        <a href="{{ '/commands/seqgen.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'commands/seqgen' %}active{% endif %}">
+                            seqgen
                         </a>
-                        <a href="{{ '/sequelizer_commands.html#sequelizer-plot---visualizing-measurements' | relative_url }}" class="sidebar-item indent">
-                            plot - Visualization
+                        <a href="{{ '/commands/plot.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'commands/plot' %}active{% endif %}">
+                            plot
                         </a>
                     </div>
                 </div>
 
                 <div class="sidebar-section">
-                    <a href="{{ '/fast5_compatibility.html' | relative_url }}" class="sidebar-item {% if page.url contains 'fast5_compatibility' %}active{% endif %}">
-                        Fast5 Compatibility
-                    </a>
+                    <button class="sidebar-toggle" data-target="guides-section">
+                        <span class="toggle-icon">+</span>
+                        <span>Guides</span>
+                    </button>
+                    <div id="guides-section" class="sidebar-subsection collapsed">
+                        <a href="{{ '/guides/examples.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'guides/examples' %}active{% endif %}">
+                            Examples
+                        </a>
+                        <a href="{{ '/guides/contributing.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'guides/contributing' %}active{% endif %}">
+                            Contributing
+                        </a>
+                        <a href="{{ '/guides/architecture.html' | relative_url }}" class="sidebar-item indent {% if page.url contains 'guides/architecture' %}active{% endif %}">
+                            Architecture
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Page TOC (auto-generated) -->
