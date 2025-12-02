@@ -8,24 +8,6 @@ description: Installation and first steps with Sequelizer
 
 This guide will help you install Sequelizer and run your first commands.
 
-## Quick Start
-
-Once you have Sequelizer built, here are the essential commands to get started:
-
-```bash
-# Build Sequelizer
-mkdir build && cd build
-cmake .. && cmake --build .
-
-# Analyze Fast5 files
-./sequelizer fast5 data.fast5
-./sequelizer fast5 /path/to/dataset/ --recursive --verbose
-
-# Extract raw signals
-./sequelizer convert data.fast5 --to raw
-./sequelizer convert /path/to/dataset/ --to raw --recursive --all
-```
-
 ## Installation and Build
 
 ### Requirements
@@ -38,11 +20,9 @@ cmake .. && cmake --build .
 ```bash
 # Install dependencies
 brew install hdf5
-
 # Build Sequelizer
 mkdir build && cd build
 cmake .. && cmake --build .
-
 # Executable: build/sequelizer
 ```
 
@@ -51,10 +31,8 @@ cmake .. && cmake --build .
 ```bash
 # Ubuntu/Debian
 sudo apt-get install libhdf5-dev cmake
-
 # CentOS/RHEL
 sudo yum install hdf5-devel cmake
-
 # Build
 mkdir build && cd build
 cmake .. && cmake --build .
@@ -65,6 +43,22 @@ cmake .. && cmake --build .
 - `sequelizer` - Main executable with all subcommands
 - `sequelizer_static` - Static library for integration
 
+## Quick Start
+
+Once you have Sequelizer built, here are the essential commands to get started:
+
+```bash
+# Build Sequelizer
+mkdir build && cd build
+cmake .. && cmake --build .
+# Analyze Fast5 files
+./sequelizer fast5 data.fast5
+./sequelizer fast5 /path/to/dataset/ --recursive --verbose
+# Extract raw signals
+./sequelizer convert data.fast5 --to raw
+./sequelizer convert /path/to/dataset/ --to raw --recursive --all
+```
+
 ## First Steps
 
 After building Sequelizer, try these commands:
@@ -74,10 +68,8 @@ After building Sequelizer, try these commands:
 ```bash
 # Single file analysis
 ./sequelizer fast5 data.fast5
-
 # Dataset analysis with full details
 ./sequelizer fast5 /path/to/dataset/ --recursive --verbose
-
 # Debug problematic files
 ./sequelizer fast5 problematic.fast5 --debug
 ```
@@ -87,7 +79,6 @@ After building Sequelizer, try these commands:
 ```bash
 # Convert single file to raw signals
 ./sequelizer convert data.fast5 --to raw
-
 # Batch convert with all reads
 ./sequelizer convert /path/to/dataset/ --to raw --recursive --all --output signals/
 ```
@@ -97,7 +88,6 @@ After building Sequelizer, try these commands:
 ```bash
 # General help
 ./sequelizer --help
-
 # Command-specific help
 ./sequelizer fast5 --help
 ./sequelizer convert --help
