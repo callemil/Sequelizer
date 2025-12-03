@@ -22,8 +22,11 @@ description: Nanopore bioinformatics for edge computing
 </div>
 
 ---
-  
-All bases, all the time.  That's Sequelizer's motto.  Genomics everywhere is its mission.
+<center>  
+All bases, all the time.<br>  
+That's Sequelizer's motto.<br>  
+Genomics everywhere is its mission.<br>
+</center>
 
 # The Now
 
