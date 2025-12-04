@@ -30,7 +30,8 @@ Genomics everywhere is its mission.<br>
 
 # The Now
 
-Research toolkit for hardware/software co-design in bioinformatics. RISC-V ready. Hackable. Open.
+Research toolkit for hardware/software co-design in bioinformatics. RISC-V ready. Hackable. Open.<br>
+Check out the [Architecture](./guides/architecture.md) and [Examples](./guides/examples.md) to learn more!
 
 # The Vision
 

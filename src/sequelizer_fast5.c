@@ -7,6 +7,8 @@ Fast5 file operations for Sequelizer.  Reads in Fast5 files and tells you what's
 Example uses:
 ./sequelizer fast5 /Users/seb/Documents/GitHub/SquiggleFilter/data/lambda/fast5/ --recursive --verbose
 ./sequelizer fast5 /Users/seb/Documents/GitHub/slow5tools/test/data --recursive --verbose 
+TODO:
+  - Add some partial verbose mode that shows file stats, but does not list the reads, the current 
 */
 #include "sequelizer_fast5.h"
 #include "core/fast5_io.h"
