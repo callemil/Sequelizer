@@ -17,6 +17,7 @@ Analyze DNA sequences in real-time, on-device, across the edge network.
 Sequelizer brings efficient bioinformatics to embedded sequencers, smartphones, and edge servers -
 processing nanopore data streams as they're generated, not hours later in the cloud.
 
+Main [Sequelizer](https://emilitronic.github.io/Sequelizer/) documentation page (under construction)
 
 ## Installation
 
