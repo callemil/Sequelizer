@@ -184,10 +184,23 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
         errx(EXIT_FAILURE, "Memory allocation failed");
       }
       (*count)++;
+
+      // Show progress every 500 files to give feedback during slow directory scans
+      if (*count % 500 == 0) {
+        printf("\rDiscovered %zu Fast5 files...", *count);
+        fflush(stdout);
+      }
     }
   }
-  
+
   closedir(dir);
+
+  // Clear the progress line if we showed any updates
+  if (*count >= 500) {
+    printf("\r");
+    fflush(stdout);
+  }
+
   return files;
 }
 
@@ -254,10 +267,23 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
             errx(EXIT_FAILURE, "Memory allocation failed");
           }
           (*count)++;
+
+          // Show progress every 500 files to give feedback during slow directory scans
+          if (*count % 500 == 0) {
+            printf("\rDiscovered %zu Fast5 files...", *count);
+            fflush(stdout);
+          }
         }
       }
-      
+
       closedir(dir);
+
+      // Clear the progress line if we showed any updates
+      if (*count >= 500) {
+        printf("\r");
+        fflush(stdout);
+      }
+
       return files;
     }
   } else {
