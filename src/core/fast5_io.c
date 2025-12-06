@@ -170,7 +170,9 @@ char** find_fast5_files_recursive(const char *directory, size_t *count) {
     } else if (S_ISREG(file_stat.st_mode) && is_fast5_file(entry->d_name)) {
       // Add Fast5 file to list
       if (*count >= files_capacity) {
-        files_capacity = files_capacity == 0 ? 16 : files_capacity * 2;
+        // Start with 1024 instead of 16 to reduce realloc() calls for large directories
+        // Typical nanopore runs have thousands of files, so this avoids multiple reallocations
+        files_capacity = files_capacity == 0 ? 1024 : files_capacity * 2;
         files = realloc(files, files_capacity * sizeof(char*));
         if (!files) {
           errx(EXIT_FAILURE, "Memory allocation failed");
@@ -225,18 +227,20 @@ char** find_fast5_files(const char *input_path, bool recursive, size_t *count) {
       struct dirent *entry;
       char **files = NULL;
       size_t files_capacity = 0;
-      
+
       dir = opendir(input_path);
       if (!dir) {
         errx(EXIT_FAILURE, "Cannot open directory: %s", input_path);
       }
-      
+
       while ((entry = readdir(dir)) != NULL) {
         if (entry->d_name[0] == '.') continue; // Skip hidden files
-        
+
         if (is_fast5_file(entry->d_name)) {
           if (*count >= files_capacity) {
-            files_capacity = files_capacity == 0 ? 16 : files_capacity * 2;
+            // Start with 1024 instead of 16 to reduce realloc() calls for large directories
+            // Typical nanopore runs have thousands of files, so this avoids multiple reallocations
+            files_capacity = files_capacity == 0 ? 1024 : files_capacity * 2;
             files = realloc(files, files_capacity * sizeof(char*));
             if (!files) {
               errx(EXIT_FAILURE, "Memory allocation failed");
