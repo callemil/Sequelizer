@@ -18,7 +18,9 @@ some_dir $ ls
 ... sample_fast5/ ...
 # sequelize it
 some_dir $ <some_path>/Sequelizer/build/sequelizer fast5 sample_fast5 --recursive
-[████████████████████████████████████████] 100% (5/5)
+Discovering Fast5 files...
+Found 5 files, analyzing...
+[[████████████████████████████████████████] 100% (5/5)
 
 Sequelizer Fast5 Dataset Analysis Summary
 =========================================
