@@ -298,6 +298,9 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   // STEP 2: DISCOVER AND ENUMERATE FAST5 FILES
   // ========================================================================
+  printf("Discovering Fast5 files...\n");
+  fflush(stdout);
+
   size_t file_count = 0;
   char **fast5_files = find_fast5_files(arguments.input_path, arguments.recursive, &file_count);
   
@@ -306,6 +309,9 @@ int main_fast5(int argc, char *argv[]) {
     printf("No Fast5 files found.\n");
     return EXIT_SUCCESS;
   }
+
+  printf("Found %zu files, analyzing...\n", file_count);
+  fflush(stdout);
   
   // ========================================================================
   // STEP 3: INITIALIZE TIMING AND DATA STRUCTURES
