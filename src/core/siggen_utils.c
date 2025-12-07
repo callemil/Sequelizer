@@ -16,10 +16,10 @@
 #include "seq_utils.h"
 #include "kseq.h"
 
-// Must declare KSEQ_INIT before including seqgen_utils.h (which uses kseq_t type)
+// Must declare KSEQ_INIT before including siggen_utils.h (which uses kseq_t type)
 KSEQ_INIT(int, read)
 
-#include "seqgen_utils.h"
+#include "siggen_utils.h"
 
 // **********************************************************************
 // kseq Synthetic Sequence Helpers
