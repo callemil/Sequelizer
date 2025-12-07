@@ -112,9 +112,10 @@ static char doc[] = "sequelizer fast5 -- Fast5 file analysis and debugging\v"
 static char args_doc[] = "INPUT";
 
 static struct argp_option options[] = {
-  {"recursive",     'r', 0,         0, "Search directories recursively"},
-  {"verbose",       'v', 0,         0, "Show detailed information"},
-  {"debug",         'd', 0,         0, "Show detailed HDF5 structure for debugging"},
+  {"recursive",     'r', 0,            0, "Search directories recursively"},
+  {"verbose",       'v', 0,            0, "Show detailed information"},
+  {"debug",         'd', 0,            0, "Show detailed HDF5 structure for debugging"},
+  {"summary",       's', "PATH",       OPTION_ARG_OPTIONAL, "Write summary to file (default: sequelizer_summary.txt)"},
   {0}
 };
 
@@ -123,11 +124,13 @@ struct arguments {
   bool recursive;
   bool verbose;
   bool debug;
+  bool write_summary;
+  char *summary_path;
 };
 
 static error_t parse_opt(int key, char *arg, struct argp_state *state) {
   struct arguments *arguments = state->input;
-  
+
   switch (key) {
     case 'r':
       arguments->recursive = true;
@@ -137,6 +140,10 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state) {
       break;
     case 'd':
       arguments->debug = true;
+      break;
+    case 's':
+      arguments->write_summary = true;
+      arguments->summary_path = arg ? arg : "sequelizer_summary.txt";
       break;
     case ARGP_KEY_ARG:
       if (state->arg_num >= 1) {
@@ -172,18 +179,18 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
 }
 
 // Helper function to process files sequentially with progress tracking
-static void process_files_sequentially(char **fast5_files, size_t files_count, 
+static void process_files_sequentially(char **fast5_files, size_t files_count,
                                       fast5_metadata_t **results, int *results_count,
                                       bool verbose) {
   // Show initial progress bar
   display_progress_simple(0, (int)files_count, verbose, "analyzing Fast5 files");
-  
+
   // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
     // Read metadata for summary calculation
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
-    
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, extract_calibration_parameters);
+
     if (metadata && metadata_count > 0) {
       results[i] = metadata;
       results_count[i] = (int)metadata_count;
@@ -191,11 +198,11 @@ static void process_files_sequentially(char **fast5_files, size_t files_count,
       results[i] = NULL;
       results_count[i] = 0;
     }
-    
+
     // Update progress bar
     display_progress_simple((int)(i + 1), (int)files_count, verbose, "analyzing Fast5 files");
   }
-  
+
   // Complete progress bar and move to next line
   printf("\n\n");
 }
@@ -277,7 +284,21 @@ static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, i
 }
 
 // **********************************************************************
-// Main Function 
+// Stats Enhancer (Carrier Function)
+// **********************************************************************
+
+// Static variable to pass summary path to enhancer
+static const char *g_summary_path = NULL;
+
+void stats_enhancer(fast5_dataset_statistics_t *stats, fast5_metadata_t **results, int *results_count, char **filenames, size_t file_count) {
+  // Write summary file if path was provided
+  if (g_summary_path) {
+    write_summary_file(g_summary_path, results, results_count, filenames, file_count);
+  }
+}
+
+// **********************************************************************
+// Main Function
 // **********************************************************************
 int main_fast5(int argc, char *argv[]) {
 
@@ -291,10 +312,17 @@ int main_fast5(int argc, char *argv[]) {
   arguments.recursive = false;
   arguments.verbose = false;
   arguments.debug = false;
+  arguments.write_summary = false;
+  arguments.summary_path = NULL;
   
   // Parse command line arguments using argp framework
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
-  
+
+  // Set summary path for enhancer if requested
+  if (arguments.write_summary) {
+    g_summary_path = arguments.summary_path;
+  }
+
   // ========================================================================
   // STEP 2: DISCOVER AND ENUMERATE FAST5 FILES
   // ========================================================================
@@ -324,23 +352,23 @@ int main_fast5(int argc, char *argv[]) {
   fast5_metadata_t **results = NULL;
   int *results_count = NULL;
   initialize_data_structures(file_count, &results, &results_count);
-  
+
   // ========================================================================
-  // STEP 4: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING  
+  // STEP 4: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING
   // ========================================================================
   // Process each file and collect metadata results (single-threaded)
   process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose);
-  
+
   // Calculate total processing time for summary
   gettimeofday(&end_time, NULL);
-  double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) + 
+  double processing_time_ms = ((end_time.tv_sec - start_time.tv_sec) * 1000.0) +
                              ((end_time.tv_usec - start_time.tv_usec) / 1000.0);
 
   // ========================================================================
   // STEP 5: CALCULATE FAST5 DATASET STATISTICS
   // ========================================================================
-  fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, NULL);
-  
+  fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, stats_enhancer);
+
   // ========================================================================
   // STEP 6: CREATE ANALYSIS SUMMARY
   // ========================================================================

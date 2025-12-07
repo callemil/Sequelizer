@@ -4,7 +4,10 @@
 // Sebastian Claudiusz Magierowski Aug 14 2025
 
 #include "fast5_stats.h"
+#include "fast5_io.h"
 #include <stdlib.h> // calloc
+#include <string.h>
+#include <math.h>
 
 // Main calculation function that orchestrates all statistics
 fast5_dataset_statistics_t* calc_fast5_dataset_stats_with_enhancer(fast5_metadata_t **results, 
@@ -129,4 +132,152 @@ fast5_analysis_summary_t* calc_analysis_summary_with_enhancer(fast5_dataset_stat
     summary->experiments_with_throughput_data = 0;
   }
   return summary;
+}
+
+// **********************************************************************
+// Summary File Writing Functions
+// **********************************************************************
+
+// Comparison function for qsort (for median calculation)
+static int compare_int16(const void *a, const void *b) {
+  int16_t ia = *(const int16_t *)a;
+  int16_t ib = *(const int16_t *)b;
+  return (ia > ib) - (ia < ib);
+}
+
+// Calculate median of int16_t array
+double calculate_median_int16(int16_t *data, size_t length) {
+  if (length == 0) return 0.0;
+
+  // Create a copy for sorting
+  int16_t *sorted = malloc(length * sizeof(int16_t));
+  if (!sorted) return 0.0;
+
+  memcpy(sorted, data, length * sizeof(int16_t));
+  qsort(sorted, length, sizeof(int16_t), compare_int16);
+
+  double median;
+  if (length % 2 == 0) {
+    median = (sorted[length/2 - 1] + sorted[length/2]) / 2.0;
+  } else {
+    median = sorted[length/2];
+  }
+
+  free(sorted);
+  return median;
+}
+
+// Calculate MAD (Median Absolute Deviation) of int16_t array
+double calculate_mad_int16(int16_t *data, size_t length, double median) {
+  if (length == 0) return 0.0;
+
+  // Calculate absolute deviations
+  int16_t *abs_dev = malloc(length * sizeof(int16_t));
+  if (!abs_dev) return 0.0;
+
+  for (size_t i = 0; i < length; i++) {
+    abs_dev[i] = (int16_t)fabs(data[i] - median);
+  }
+
+  double mad = calculate_median_int16(abs_dev, length);
+  free(abs_dev);
+
+  return mad;
+}
+
+// Write summary header to file
+void write_summary_header(FILE *fp) {
+  fprintf(fp, "#sequelizer_summary_v1.0\n");
+  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\tduration\tnum_samples\tmedian_pa\tmad_pa\n");
+}
+
+// Write a single read's summary row
+void write_summary_row(FILE *fp, const char *filename,
+                      fast5_metadata_t *metadata,
+                      int16_t *signal, size_t signal_length) {
+  // Extract basename from filename
+  const char *basename = strrchr(filename, '/');
+  basename = basename ? basename + 1 : filename;
+
+  // Calculate median and MAD from raw signal
+  double median_raw = calculate_median_int16(signal, signal_length);
+  double mad_raw = calculate_mad_int16(signal, signal_length, median_raw);
+
+  // Convert to pA if calibration available
+  double median_pa, mad_pa;
+  if (metadata->calibration_available && metadata->digitisation > 0) {
+    median_pa = (median_raw - metadata->offset) * metadata->range / metadata->digitisation;
+    mad_pa = mad_raw * metadata->range / metadata->digitisation;
+  } else {
+    // No calibration: output raw ADC values
+    median_pa = median_raw;
+    mad_pa = mad_raw;
+  }
+
+  // Calculate duration and start_time in seconds
+  double duration = metadata->sample_rate > 0 ? metadata->signal_length / metadata->sample_rate : 0.0;
+  double start_time = metadata->sample_rate > 0 ? metadata->start_time / metadata->sample_rate : 0.0;
+
+  // Extract mux from metadata (not currently in structure, use placeholder)
+  int mux = 0;  // TODO: Extract from Fast5 if available
+
+  // Parse channel number (currently stored as string)
+  int channel = metadata->channel_number ? atoi(metadata->channel_number) : 0;
+
+  // Write the row
+  fprintf(fp, "%s\t%s\t%s\t%d\t%.6f\t%d\t%.6f\t%u\t%.2f\t%.2f\n",
+          basename,
+          metadata->read_id ? metadata->read_id : "unknown",
+          metadata->run_id ? metadata->run_id : "unknown",
+          channel,
+          start_time,
+          mux,
+          duration,
+          metadata->signal_length,
+          median_pa,
+          mad_pa);
+}
+
+// Write complete summary file (worker function called by enhancer)
+void write_summary_file(const char *summary_path, fast5_metadata_t **results,
+                       int *results_count, char **filenames, size_t file_count) {
+  // Open summary file
+  FILE *fp = fopen(summary_path, "w");
+  if (!fp) {
+    fprintf(stderr, "Warning: Failed to open summary file: %s\n", summary_path);
+    return;
+  }
+
+  // Write header
+  write_summary_header(fp);
+
+  // Iterate through all files and reads
+  for (size_t i = 0; i < file_count; i++) {
+    if (results[i] && results_count[i] > 0) {
+      for (int j = 0; j < results_count[i]; j++) {
+        // Read the raw signal for this read
+        size_t signal_length = 0;
+        float *signal_float = read_fast5_signal(filenames[i], results[i][j].read_id, &signal_length);
+
+        if (signal_float && signal_length > 0) {
+          // Convert float signal to int16_t for median/MAD calculation
+          int16_t *signal_int16 = malloc(signal_length * sizeof(int16_t));
+          if (signal_int16) {
+            for (size_t k = 0; k < signal_length; k++) {
+              signal_int16[k] = (int16_t)signal_float[k];
+            }
+
+            // Write summary row
+            write_summary_row(fp, filenames[i], &results[i][j], signal_int16, signal_length);
+
+            free(signal_int16);
+          }
+          free_fast5_signal(signal_float);
+        }
+      }
+    }
+  }
+
+  fclose(fp);
+  printf("Summary written to: %s\n", summary_path);
 }

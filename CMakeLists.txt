@@ -53,11 +53,11 @@ set(SEQUELIZER_SOURCES
 
 # Sequelizer static library
 add_library(sequelizer_static STATIC ${SEQUELIZER_SOURCES})
-target_include_directories(sequelizer_static PRIVATE include src/core)
+target_include_directories(sequelizer_static PRIVATE include src src/core)
 
 # Sequelizer executable
 add_executable(sequelizer src/sequelizer.c)
-target_include_directories(sequelizer PRIVATE include src/core)
+target_include_directories(sequelizer PRIVATE include src src/core)
 if(APPLE)
   target_link_libraries(sequelizer sequelizer_static m hdf5 argp)
 else()
