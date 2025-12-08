@@ -255,25 +255,36 @@ void write_summary_file(const char *summary_path, fast5_metadata_t **results,
   for (size_t i = 0; i < file_count; i++) {
     if (results[i] && results_count[i] > 0) {
       for (int j = 0; j < results_count[i]; j++) {
-        // Read the raw signal for this read
-        size_t signal_length = 0;
-        float *signal_float = read_fast5_signal(filenames[i], results[i][j].read_id, &signal_length);
+        // Use basecall stats if available, otherwise use 0.0
+        double median_pa = results[i][j].basecall_stats_available ? results[i][j].median_template : 0.0;
+        double mad_pa = results[i][j].basecall_stats_available ? results[i][j].mad_template : 0.0;
 
-        if (signal_float && signal_length > 0) {
-          // Convert float signal to int16_t for median/MAD calculation
-          int16_t *signal_int16 = malloc(signal_length * sizeof(int16_t));
-          if (signal_int16) {
-            for (size_t k = 0; k < signal_length; k++) {
-              signal_int16[k] = (int16_t)signal_float[k];
-            }
+        // Extract basename from filename
+        const char *basename = strrchr(filenames[i], '/');
+        basename = basename ? basename + 1 : filenames[i];
 
-            // Write summary row
-            write_summary_row(fp, filenames[i], &results[i][j], signal_int16, signal_length);
+        // Calculate duration and start_time in seconds
+        double duration = results[i][j].sample_rate > 0 ? results[i][j].signal_length / results[i][j].sample_rate : 0.0;
+        double start_time = results[i][j].sample_rate > 0 ? results[i][j].start_time / results[i][j].sample_rate : 0.0;
 
-            free(signal_int16);
-          }
-          free_fast5_signal(signal_float);
-        }
+        // Extract mux from metadata (not currently available, use placeholder)
+        int mux = 0;
+
+        // Parse channel number
+        int channel = results[i][j].channel_number ? atoi(results[i][j].channel_number) : 0;
+
+        // Write the row
+        fprintf(fp, "%s\t%s\t%s\t%d\t%.6f\t%d\t%.6f\t%u\t%.2f\t%.2f\n",
+                basename,
+                results[i][j].read_id ? results[i][j].read_id : "unknown",
+                results[i][j].run_id ? results[i][j].run_id : "unknown",
+                channel,
+                start_time,
+                mux,
+                duration,
+                results[i][j].signal_length,
+                median_pa,
+                mad_pa);
       }
     }
   }

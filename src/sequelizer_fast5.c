@@ -178,18 +178,27 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
   }
 }
 
-// Helper function to process files sequentially with progress tracking
+// Composite enhancer for summary mode (extracts both calibration and basecall stats)
+static void extract_summary_metadata(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  extract_calibration_parameters(file_id, signal_dataset_id, metadata);
+  extract_basecall_summary_stats(file_id, signal_dataset_id, metadata);
+}
+
+// Helper function to process files sequentially with progress tracking (your big for-loop)
 static void process_files_sequentially(char **fast5_files, size_t files_count,
                                       fast5_metadata_t **results, int *results_count,
-                                      bool verbose) {
+                                      bool verbose, bool need_basecall_stats) {
   // Show initial progress bar
   display_progress_simple(0, (int)files_count, verbose, "analyzing Fast5 files");
 
+  // Choose enhancer based on whether summary is needed (i.e., summary looks in basecall stats in Analyses group)
+  metadata_enhancer_t enhancer = need_basecall_stats ? extract_summary_metadata : extract_calibration_parameters;
+
   // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
-    // Read metadata for summary calculation
+    // Read metadata
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, extract_calibration_parameters);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, enhancer);
 
     if (metadata && metadata_count > 0) {
       results[i] = metadata;
@@ -357,7 +366,7 @@ int main_fast5(int argc, char *argv[]) {
   // STEP 4: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING
   // ========================================================================
   // Process each file and collect metadata results (single-threaded)
-  process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose);
+  process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose, arguments.write_summary);
 
   // Calculate total processing time for summary
   gettimeofday(&end_time, NULL);

@@ -32,6 +32,7 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 
 // Enhancer functions
 void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
+void extract_basecall_summary_stats(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);

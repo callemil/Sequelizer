@@ -43,6 +43,10 @@ typedef struct {
     double range;              // Full scale range in picoamperes
     double digitisation;       // ADC resolution (typically 8192)
     bool calibration_available; // Whether calibration data was found
+    // Basecalled summary statistics (from split_hairpin_summary or basecall_1d_summary)
+    double median_template;    // Median signal from basecalling
+    double mad_template;       // MAD from basecalling
+    bool basecall_stats_available; // Whether basecalled stats were found
 } fast5_metadata_t;
 
 // Basic summary for simple reporting (no compression analysis)
