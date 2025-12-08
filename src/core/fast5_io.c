@@ -467,8 +467,14 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
   metadata->range = 0.0;
   metadata->digitisation = 0.0;
   metadata->calibration_available = false;
-  
+
   if (signal_dataset_id < 0) return;
+
+  // Suppress HDF5 error messages for missing groups/attributes
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
   
   // Get the dataset path to determine read location
   char obj_name[256];
@@ -526,9 +532,12 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
     
     // Mark calibration as available if we got all three parameters
     metadata->calibration_available = got_offset && got_range && got_digitisation;
-    
+
     H5Gclose(channel_group_id);
   }
+
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
 
