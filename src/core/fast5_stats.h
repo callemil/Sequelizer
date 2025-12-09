@@ -114,26 +114,4 @@ void calc_signal_stats(fast5_dataset_statistics_t *stats, fast5_metadata_t **res
 // Main analysis summary calculation function
 fast5_analysis_summary_t* calc_analysis_summary_with_enhancer(fast5_dataset_statistics_t *stats, int file_count, double processing_time_ms, summary_enhancer_t enhancer);
 
-// **********************************************************************
-// Summary File Writing Functions
-// **********************************************************************
-
-// Calculate median of int16_t array
-double calculate_median_int16(int16_t *data, size_t length);
-
-// Calculate MAD (Median Absolute Deviation) of int16_t array
-double calculate_mad_int16(int16_t *data, size_t length, double median);
-
-// Write summary header to file
-void write_summary_header(FILE *fp);
-
-// Write a single read's summary row
-void write_summary_row(FILE *fp, const char *filename,
-                      fast5_metadata_t *metadata,
-                      int16_t *signal, size_t signal_length);
-
-// Write complete summary file (worker function called by enhancer)
-void write_summary_file(const char *summary_path, fast5_metadata_t **results,
-                       int *results_count, char **filenames, size_t file_count);
-
 #endif //SEQUELIZER_FAST5_STATS_H

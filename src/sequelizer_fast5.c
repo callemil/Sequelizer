@@ -178,27 +178,18 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
   }
 }
 
-// Composite enhancer for summary mode (extracts both calibration and basecall stats)
-static void extract_summary_metadata(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
-  extract_calibration_parameters(file_id, signal_dataset_id, metadata);
-  extract_basecall_summary_stats(file_id, signal_dataset_id, metadata);
-}
-
 // Helper function to process files sequentially with progress tracking (your big for-loop)
 static void process_files_sequentially(char **fast5_files, size_t files_count,
                                       fast5_metadata_t **results, int *results_count,
-                                      bool verbose, bool need_basecall_stats) {
+                                      bool verbose) {
   // Show initial progress bar
   display_progress_simple(0, (int)files_count, verbose, "analyzing Fast5 files");
-
-  // Choose enhancer based on whether summary is needed (i.e., summary looks in basecall stats in Analyses group)
-  metadata_enhancer_t enhancer = need_basecall_stats ? extract_summary_metadata : extract_calibration_parameters;
 
   // Process each file and collect results
   for (size_t i = 0; i < files_count; i++) {
     // Read metadata
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, enhancer);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
 
     if (metadata && metadata_count > 0) {
       results[i] = metadata;
@@ -217,7 +208,7 @@ static void process_files_sequentially(char **fast5_files, size_t files_count,
 }
 
 // Helper function to display single file info using pre-loaded metadata (avoids re-reading)
-static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, int count, 
+static void print_file_info_human(fast5_metadata_t *metadata, int count, 
                                                    const char *filename, bool verbose) {
   printf("Fast5 File: %s\n", filename);
   printf("=====================================\n");
@@ -293,17 +284,62 @@ static void display_single_file_info_from_metadata(fast5_metadata_t *metadata, i
 }
 
 // **********************************************************************
-// Stats Enhancer (Carrier Function)
+// Summary File Writing
 // **********************************************************************
 
-// Static variable to pass summary path to enhancer
-static const char *g_summary_path = NULL;
-
-void stats_enhancer(fast5_dataset_statistics_t *stats, fast5_metadata_t **results, int *results_count, char **filenames, size_t file_count) {
-  // Write summary file if path was provided
-  if (g_summary_path) {
-    write_summary_file(g_summary_path, results, results_count, filenames, file_count);
+static void write_summary_file(const char *summary_path, fast5_metadata_t **results,
+                               int *results_count, char **filenames, size_t file_count) {
+  // Open summary file
+  FILE *fp = fopen(summary_path, "w");
+  if (!fp) {
+    fprintf(stderr, "Warning: Failed to open summary file: %s\n", summary_path);
+    return;
   }
+
+  // Write header
+  fprintf(fp, "#sequelizer_summary_v1.0\n");
+  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\tduration\tnum_samples\tmedian_pa\tmad_pa\n");
+
+  // Iterate through all files and reads
+  for (size_t i = 0; i < file_count; i++) {
+    if (results[i] && results_count[i] > 0) {
+      for (int j = 0; j < results_count[i]; j++) {
+        // Use basecall stats if available, otherwise use 0.0
+        double median_pa = results[i][j].basecall_stats_available ? results[i][j].median_template : 0.0;
+        double mad_pa = results[i][j].basecall_stats_available ? results[i][j].mad_template : 0.0;
+
+        // Extract basename from filename
+        const char *basename = strrchr(filenames[i], '/');
+        basename = basename ? basename + 1 : filenames[i];
+
+        // Calculate duration and start_time in seconds
+        double duration = results[i][j].sample_rate > 0 ? results[i][j].signal_length / results[i][j].sample_rate : 0.0;
+        double start_time = results[i][j].sample_rate > 0 ? results[i][j].start_time / results[i][j].sample_rate : 0.0;
+
+        // Extract mux from metadata (not currently available, use placeholder)
+        int mux = 0;
+
+        // Parse channel number
+        int channel = results[i][j].channel_number ? atoi(results[i][j].channel_number) : 0;
+
+        // Write the row
+        fprintf(fp, "%s\t%s\t%s\t%d\t%.6f\t%d\t%.6f\t%u\t%.2f\t%.2f\n",
+                basename,
+                results[i][j].read_id ? results[i][j].read_id : "unknown",
+                results[i][j].run_id ? results[i][j].run_id : "unknown",
+                channel,
+                start_time,
+                mux,
+                duration,
+                results[i][j].signal_length,
+                median_pa,
+                mad_pa);
+      }
+    }
+  }
+
+  fclose(fp);
+  printf("Summary written to: %s\n", summary_path);
 }
 
 // **********************************************************************
@@ -326,11 +362,6 @@ int main_fast5(int argc, char *argv[]) {
   
   // Parse command line arguments using argp framework
   argp_parse(&argp, argc, argv, 0, 0, &arguments);
-
-  // Set summary path for enhancer if requested
-  if (arguments.write_summary) {
-    g_summary_path = arguments.summary_path;
-  }
 
   // ========================================================================
   // STEP 2: DISCOVER AND ENUMERATE FAST5 FILES
@@ -366,7 +397,7 @@ int main_fast5(int argc, char *argv[]) {
   // STEP 4: PROCESS FILES SEQUENTIALLY WITH PROGRESS TRACKING
   // ========================================================================
   // Process each file and collect metadata results (single-threaded)
-  process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose, arguments.write_summary);
+  process_files_sequentially(fast5_files, file_count, results, results_count, arguments.verbose);
 
   // Calculate total processing time for summary
   gettimeofday(&end_time, NULL);
@@ -376,7 +407,7 @@ int main_fast5(int argc, char *argv[]) {
   // ========================================================================
   // STEP 5: CALCULATE FAST5 DATASET STATISTICS
   // ========================================================================
-  fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, stats_enhancer);
+  fast5_dataset_statistics_t *stats = calc_fast5_dataset_stats_with_enhancer(results, results_count, fast5_files, file_count, NULL);
 
   // ========================================================================
   // STEP 6: CREATE ANALYSIS SUMMARY
@@ -401,7 +432,7 @@ int main_fast5(int argc, char *argv[]) {
   if ((file_count == 1) || (arguments.verbose && file_count <= 10)) {
     for (size_t i = 0; i < file_count; i++) {
       if (results[i] && results_count[i] > 0) {
-        display_single_file_info_from_metadata(results[i], results_count[i], fast5_files[i], arguments.verbose);
+        print_file_info_human(results[i], results_count[i], fast5_files[i], arguments.verbose);
       }
     }
   }
@@ -409,6 +440,11 @@ int main_fast5(int argc, char *argv[]) {
   // Always show comprehensive summary (except debug mode which already returned)
   print_comprehensive_summary_human(summary);
   free_comprehensive_summary(summary);
+
+  // Write summary file if requested
+  if (arguments.write_summary) {
+    write_summary_file(arguments.summary_path, results, results_count, fast5_files, file_count);
+  }
 
   // ========================================================================
   // STEP 8: CLEANUP ALL ALLOCATED RESOURCES

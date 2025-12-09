@@ -24,6 +24,9 @@ well-funded labs with server racks.
 ```c
 // STEP 3
 fast5_metadata_t **results = NULL;
+```
+You are preparing a data structue to hold metadata results from processing Fast5 files.  The `fast5_metadata_t` data structure is defined in `sequelizer/src/core/fast5_utils.h`. Next:
+```c
 // STEP 4B results are in worker_args
 pthread_create(&threads[i], NULL, fast5_worker_thread, &worker_args[i]);
 // STEP 5
