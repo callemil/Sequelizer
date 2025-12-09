@@ -11,7 +11,7 @@
 
 // Sensor analysis structure
 typedef struct {
-  char *channel_number;      // Sensor identifier
+  char *channel_number;     // Sensor identifier
   int read_count;           // Reads from this sensor
   char *experiment_id;      // Which experiment this belongs to
 } sensor_summary_t;

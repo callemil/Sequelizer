@@ -540,7 +540,6 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
-
 // **********************************************************************
 // Fast5 Metadata Reading Functions (ENHANCED)
 // **********************************************************************
@@ -577,7 +576,7 @@ static fast5_metadata_t* read_single_read_metadata_with_enhancer(hid_t file_id, 
     return NULL;
   }
   
-  fast5_metadata_t *metadata = calloc(num_objs, sizeof(fast5_metadata_t));
+  fast5_metadata_t *metadata = calloc(num_objs, sizeof(fast5_metadata_t)); // allocate space for file metadata
   if (!metadata) {
     H5Gclose(reads_group_id);
     return NULL;

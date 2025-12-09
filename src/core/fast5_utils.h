@@ -24,29 +24,29 @@ typedef struct {
     bool is_multi_read;
     char *file_path;
     // Storage analysis fields
-    char *compression_method;      // "deflate-gzip", "szip", "none"
-    size_t logical_bytes;          // Uncompressed size of signal data  
-    size_t datatype_size;          // Bytes per sample (2 for int16)
-    double logical_bits_per_sample; // logical_bytes * 8 / signal_length
-    double compression_ratio;      // If compression detected
+    char *compression_method;        // "deflate-gzip", "szip", "none"
+    size_t logical_bytes;            // Uncompressed size of signal data  
+    size_t datatype_size;            // Bytes per sample (2 for int16)
+    double logical_bits_per_sample;  // logical_bytes * 8 / signal_length
+    double compression_ratio;        // If compression detected
     bool storage_analysis_available; // Whether storage analysis was performed
     // Pore level analysis fields  
-    double median_before;              // Estimated median current level before read
-    bool pore_level_available;         // Whether pore level analysis was performed
+    double median_before;            // Estimated median current level before read
+    bool pore_level_available;       // Whether pore level analysis was performed
     // Temporal analysis fields  
-    uint64_t start_time;        // Raw start time in samples
-    char *run_id;              // Experiment identifier
-    char *channel_number;       // Sensor/channel identifier ("1", "142", etc.)
-    bool temporal_data_available; // Whether temporal analysis was performed
+    uint64_t start_time;             // Raw start time in samples
+    char *run_id;                    // Experiment identifier
+    char *channel_number;            // Sensor/channel identifier ("1", "142", etc.)
+    bool temporal_data_available;    // Whether temporal analysis was performed
     // Calibration parameters for raw signal conversion
-    double offset;             // Baseline offset for pA conversion
-    double range;              // Full scale range in picoamperes
-    double digitisation;       // ADC resolution (typically 8192)
-    bool calibration_available; // Whether calibration data was found
+    double offset;                   // Baseline offset for pA conversion
+    double range;                    // Full scale range in picoamperes
+    double digitisation;             // ADC resolution (typically 8192)
+    bool calibration_available;      // Whether calibration data was found
     // Basecalled summary statistics (from split_hairpin_summary or basecall_1d_summary)
-    double median_template;    // Median signal from basecalling
-    double mad_template;       // MAD from basecalling
-    bool basecall_stats_available; // Whether basecalled stats were found
+    double median_template;          // Median signal from basecalling
+    double mad_template;             // MAD from basecalling
+    bool basecall_stats_available;   // Whether basecalled stats were found
 } fast5_metadata_t;
 
 // Basic summary for simple reporting (no compression analysis)
