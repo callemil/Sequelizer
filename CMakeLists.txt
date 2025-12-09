@@ -51,30 +51,42 @@ set(SEQUELIZER_SOURCES
     src/core/kmer_model_loader.c
 )
 
+# Common include directories
+set(SEQUELIZER_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+)
+
 # Sequelizer static library
 add_library(sequelizer_static STATIC ${SEQUELIZER_SOURCES})
-target_include_directories(sequelizer_static PRIVATE include src src/core)
+target_include_directories(sequelizer_static PUBLIC ${SEQUELIZER_INCLUDE_DIRS})
 
 # Sequelizer executable
 add_executable(sequelizer src/sequelizer.c)
-target_include_directories(sequelizer PRIVATE include src src/core)
+target_include_directories(sequelizer PRIVATE ${SEQUELIZER_INCLUDE_DIRS})
 if(APPLE)
-  target_link_libraries(sequelizer sequelizer_static m hdf5 argp)
+  target_link_libraries(sequelizer PRIVATE sequelizer_static m hdf5 argp)
 else()
-  target_link_libraries(sequelizer sequelizer_static m ${HDF5_LIBRARIES} ${OPENBLAS_LIBRARY})
+  target_link_libraries(sequelizer PRIVATE sequelizer_static m ${HDF5_LIBRARIES} ${OPENBLAS_LIBRARY})
 endif()
 
 # Test executables
 add_executable(test_kmer_loader test/test_kmer_loader.c src/core/kmer_model_loader.c)
-target_include_directories(test_kmer_loader PRIVATE include src/core)
+target_include_directories(test_kmer_loader PRIVATE ${SEQUELIZER_INCLUDE_DIRS})
+if(APPLE)
+  target_link_libraries(test_kmer_loader PRIVATE sequelizer_static m hdf5 argp)
+else()
+  target_link_libraries(test_kmer_loader PRIVATE sequelizer_static m ${HDF5_LIBRARIES} ${OPENBLAS_LIBRARY})
+endif()
 
 add_executable(test_seqgen test/test_seqgen.c)
-target_include_directories(test_seqgen PRIVATE include src/core)
-target_link_libraries(test_seqgen sequelizer_static m)
+target_include_directories(test_seqgen PRIVATE ${SEQUELIZER_INCLUDE_DIRS})
+target_link_libraries(test_seqgen PRIVATE sequelizer_static m)
 
 add_executable(test_seqgen_models test/test_seqgen_models.c)
-target_include_directories(test_seqgen_models PRIVATE include src/core)
-target_link_libraries(test_seqgen_models sequelizer_static m)
+target_include_directories(test_seqgen_models PRIVATE ${SEQUELIZER_INCLUDE_DIRS})
+target_link_libraries(test_seqgen_models PRIVATE sequelizer_static m)
 
 # Install
 install(TARGETS sequelizer RUNTIME DESTINATION bin)
