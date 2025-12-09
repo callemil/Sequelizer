@@ -172,10 +172,18 @@ static struct argp argp = {options, parse_opt, args_doc, doc};
 static void initialize_data_structures(size_t file_count, fast5_metadata_t ***results, int **results_count) {
   *results = calloc(file_count, sizeof(fast5_metadata_t*));
   *results_count = calloc(file_count, sizeof(int));
-  
+
   if (!*results || !*results_count) {
     errx(EXIT_FAILURE, "Memory allocation failed for data structures");
   }
+}
+
+// **********************************************************************
+// Metadata Enhancer (Carrier Function)
+// **********************************************************************
+
+void metadata_enhancer(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  extract_tracking_id(file_id, signal_dataset_id, metadata);
 }
 
 // Helper function to process files sequentially with progress tracking (your big for-loop)
@@ -189,7 +197,7 @@ static void process_files_sequentially(char **fast5_files, size_t files_count,
   for (size_t i = 0; i < files_count; i++) {
     // Read metadata
     size_t metadata_count = 0;
-    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, NULL);
+    fast5_metadata_t *metadata = read_fast5_metadata_with_enhancer(fast5_files[i], &metadata_count, metadata_enhancer);
 
     if (metadata && metadata_count > 0) {
       results[i] = metadata;
@@ -286,7 +294,7 @@ static void print_file_info_human(fast5_metadata_t *metadata, int count,
 // **********************************************************************
 // Summary File Writing
 // **********************************************************************
-
+// sequelizer_summary.txt
 static void write_summary_file(const char *summary_path, fast5_metadata_t **results,
                                int *results_count, char **filenames, size_t file_count) {
   // Open summary file

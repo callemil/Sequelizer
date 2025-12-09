@@ -31,6 +31,7 @@ fast5_metadata_t* read_fast5_metadata_with_enhancer(const char *filename, size_t
 void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 
 // Enhancer functions
+void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 void extract_basecall_summary_stats(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 

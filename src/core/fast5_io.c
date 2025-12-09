@@ -460,6 +460,82 @@ void extract_basecall_summary_stats(hid_t file_id, hid_t signal_dataset_id, fast
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
+// Enhancer function to extract tracking_id metadata (run_id, etc.)
+void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // Initialize field
+  metadata->run_id = NULL;
+
+  if (signal_dataset_id < 0) return;
+
+  // Suppress HDF5 error messages for missing groups/attributes
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+
+  // Get the dataset path to determine format
+  char obj_name[256];
+  ssize_t name_len = H5Iget_name(signal_dataset_id, obj_name, sizeof(obj_name));
+  if (name_len <= 0) {
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    return;
+  }
+
+  // Parse path to determine format and extract run_id
+  if (strstr(obj_name, "/Raw/Reads/")) {
+    // Single-read format: /Raw/Reads/Read_xxx/Signal
+    // Get run_id from /UniqueGlobalKey/tracking_id/run_id
+    hid_t tracking_group_id = H5Gopen2(file_id, "/UniqueGlobalKey/tracking_id", H5P_DEFAULT);
+    if (tracking_group_id >= 0) {
+      hid_t attr_id = H5Aopen(tracking_group_id, "run_id", H5P_DEFAULT);
+      if (attr_id >= 0) {
+        hid_t type_id = H5Aget_type(attr_id);
+        size_t size = H5Tget_size(type_id);
+        metadata->run_id = malloc(size + 1);
+        if (metadata->run_id) {
+          H5Aread(attr_id, type_id, metadata->run_id);
+          metadata->run_id[size] = '\0';
+        }
+        H5Tclose(type_id);
+        H5Aclose(attr_id);
+      }
+      H5Gclose(tracking_group_id);
+    }
+  } else if (strstr(obj_name, "/read_")) {
+    // Multi-read format: /read_xxx/Raw/Signal
+    // Find the read group (extract read_xxx path)
+    char read_path[256];
+    strncpy(read_path, obj_name, sizeof(read_path));
+    char *raw_pos = strstr(read_path, "/Raw/Signal");
+    if (raw_pos) {
+      *raw_pos = '\0'; // Get read_xxx path
+
+      // Get run_id from read_xxx/tracking_id/run_id
+      char tracking_path[512];
+      snprintf(tracking_path, sizeof(tracking_path), "%s/tracking_id", read_path);
+      hid_t tracking_group_id = H5Gopen2(file_id, tracking_path, H5P_DEFAULT);
+      if (tracking_group_id >= 0) {
+        hid_t attr_id = H5Aopen(tracking_group_id, "run_id", H5P_DEFAULT);
+        if (attr_id >= 0) {
+          hid_t type_id = H5Aget_type(attr_id);
+          size_t size = H5Tget_size(type_id);
+          metadata->run_id = malloc(size + 1);
+          if (metadata->run_id) {
+            H5Aread(attr_id, type_id, metadata->run_id);
+            metadata->run_id[size] = '\0';
+          }
+          H5Tclose(type_id);
+          H5Aclose(attr_id);
+        }
+        H5Gclose(tracking_group_id);
+      }
+    }
+  }
+
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+}
+
 // Enhancer function to extract calibration parameters from Fast5 files
 void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   // Initialize calibration fields
