@@ -503,19 +503,37 @@ void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_
       hid_t attr_id = H5Aopen(tracking_group_id, "run_id", H5P_DEFAULT);
       if (attr_id >= 0) {
         hid_t type_id = H5Aget_type(attr_id);
-        size_t size = H5Tget_size(type_id);
-        char *temp_str = malloc(size + 1);
-        if (temp_str) {
-          H5Aread(attr_id, type_id, temp_str);
-          temp_str[size] = '\0';
+        htri_t is_vlen = H5Tis_variable_str(type_id);
 
-          // Validate that the string contains printable characters
-          if (is_valid_text_string(temp_str, size)) {
-            metadata->run_id = temp_str;
-          } else {
-            // Invalid/binary data, discard it
-            free(temp_str);
-            metadata->run_id = NULL;
+        if (is_vlen > 0) {
+          // Variable-length string: read pointer to string
+          char *vlen_str = NULL;
+          herr_t status = H5Aread(attr_id, type_id, &vlen_str);
+          if (status >= 0 && vlen_str) {
+            // Validate the string
+            size_t len = strlen(vlen_str);
+            if (is_valid_text_string(vlen_str, len)) {
+              metadata->run_id = strdup(vlen_str);
+            }
+            // Free HDF5's memory
+            H5free_memory(vlen_str);
+          }
+        } else {
+          // Fixed-length string: read into buffer
+          size_t size = H5Tget_size(type_id);
+          char *temp_str = malloc(size + 1);
+          if (temp_str) {
+            memset(temp_str, 0, size + 1);
+            H5Aread(attr_id, type_id, temp_str);
+            temp_str[size] = '\0';
+
+            // Validate that the string contains printable characters
+            if (is_valid_text_string(temp_str, size)) {
+              metadata->run_id = temp_str;
+            } else {
+              free(temp_str);
+              metadata->run_id = NULL;
+            }
           }
         }
         H5Tclose(type_id);
@@ -540,19 +558,37 @@ void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_
         hid_t attr_id = H5Aopen(tracking_group_id, "run_id", H5P_DEFAULT);
         if (attr_id >= 0) {
           hid_t type_id = H5Aget_type(attr_id);
-          size_t size = H5Tget_size(type_id);
-          char *temp_str = malloc(size + 1);
-          if (temp_str) {
-            H5Aread(attr_id, type_id, temp_str);
-            temp_str[size] = '\0';
+          htri_t is_vlen = H5Tis_variable_str(type_id);
 
-            // Validate that the string contains printable characters
-            if (is_valid_text_string(temp_str, size)) {
-              metadata->run_id = temp_str;
-            } else {
-              // Invalid/binary data, discard it
-              free(temp_str);
-              metadata->run_id = NULL;
+          if (is_vlen > 0) {
+            // Variable-length string: read pointer to string
+            char *vlen_str = NULL;
+            herr_t status = H5Aread(attr_id, type_id, &vlen_str);
+            if (status >= 0 && vlen_str) {
+              // Validate the string
+              size_t len = strlen(vlen_str);
+              if (is_valid_text_string(vlen_str, len)) {
+                metadata->run_id = strdup(vlen_str);
+              }
+              // Free HDF5's memory
+              H5free_memory(vlen_str);
+            }
+          } else {
+            // Fixed-length string: read into buffer
+            size_t size = H5Tget_size(type_id);
+            char *temp_str = malloc(size + 1);
+            if (temp_str) {
+              memset(temp_str, 0, size + 1);
+              H5Aread(attr_id, type_id, temp_str);
+              temp_str[size] = '\0';
+
+              // Validate that the string contains printable characters
+              if (is_valid_text_string(temp_str, size)) {
+                metadata->run_id = temp_str;
+              } else {
+                free(temp_str);
+                metadata->run_id = NULL;
+              }
             }
           }
           H5Tclose(type_id);
