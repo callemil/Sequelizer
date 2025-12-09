@@ -460,6 +460,19 @@ void extract_basecall_summary_stats(hid_t file_id, hid_t signal_dataset_id, fast
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
+// Helper function to validate that a string contains only printable ASCII characters
+static bool is_valid_text_string(const char *str, size_t max_len) {
+  if (!str) return false;
+
+  for (size_t i = 0; i < max_len && str[i] != '\0'; i++) {
+    // Check if character is printable ASCII (space to tilde: 0x20-0x7E) or tab/newline
+    if (str[i] != '\t' && str[i] != '\n' && (str[i] < 0x20 || str[i] > 0x7E)) {
+      return false;
+    }
+  }
+  return true;
+}
+
 // Enhancer function to extract tracking_id metadata (run_id, etc.)
 void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   // Initialize field
@@ -491,10 +504,19 @@ void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_
       if (attr_id >= 0) {
         hid_t type_id = H5Aget_type(attr_id);
         size_t size = H5Tget_size(type_id);
-        metadata->run_id = malloc(size + 1);
-        if (metadata->run_id) {
-          H5Aread(attr_id, type_id, metadata->run_id);
-          metadata->run_id[size] = '\0';
+        char *temp_str = malloc(size + 1);
+        if (temp_str) {
+          H5Aread(attr_id, type_id, temp_str);
+          temp_str[size] = '\0';
+
+          // Validate that the string contains printable characters
+          if (is_valid_text_string(temp_str, size)) {
+            metadata->run_id = temp_str;
+          } else {
+            // Invalid/binary data, discard it
+            free(temp_str);
+            metadata->run_id = NULL;
+          }
         }
         H5Tclose(type_id);
         H5Aclose(attr_id);
@@ -519,10 +541,19 @@ void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_
         if (attr_id >= 0) {
           hid_t type_id = H5Aget_type(attr_id);
           size_t size = H5Tget_size(type_id);
-          metadata->run_id = malloc(size + 1);
-          if (metadata->run_id) {
-            H5Aread(attr_id, type_id, metadata->run_id);
-            metadata->run_id[size] = '\0';
+          char *temp_str = malloc(size + 1);
+          if (temp_str) {
+            H5Aread(attr_id, type_id, temp_str);
+            temp_str[size] = '\0';
+
+            // Validate that the string contains printable characters
+            if (is_valid_text_string(temp_str, size)) {
+              metadata->run_id = temp_str;
+            } else {
+              // Invalid/binary data, discard it
+              free(temp_str);
+              metadata->run_id = NULL;
+            }
           }
           H5Tclose(type_id);
           H5Aclose(attr_id);
