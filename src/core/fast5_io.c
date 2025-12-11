@@ -603,6 +603,136 @@ void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
+// Enhancer function to extract channel_number from channel_id group
+void extract_channel_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // Initialize field
+  metadata->channel_number = NULL;
+
+  if (signal_dataset_id < 0) return;
+
+  // Suppress HDF5 error messages for missing groups/attributes
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+
+  // Get the dataset path to determine format
+  char obj_name[256];
+  ssize_t name_len = H5Iget_name(signal_dataset_id, obj_name, sizeof(obj_name));
+  if (name_len <= 0) {
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    return;
+  }
+
+  // Parse path to determine format and extract channel_number
+  if (strstr(obj_name, "/Raw/Reads/")) {
+    // Single-read format: /Raw/Reads/Read_xxx/Signal
+    // Get channel_number from /UniqueGlobalKey/channel_id/channel_number
+    hid_t channel_group_id = H5Gopen2(file_id, "/UniqueGlobalKey/channel_id", H5P_DEFAULT);
+    if (channel_group_id >= 0) {
+      hid_t attr_id = H5Aopen(channel_group_id, "channel_number", H5P_DEFAULT);
+      if (attr_id >= 0) {
+        hid_t type_id = H5Aget_type(attr_id);
+        htri_t is_vlen = H5Tis_variable_str(type_id);
+
+        if (is_vlen > 0) {
+          // Variable-length string: read pointer to string
+          char *vlen_str = NULL;
+          herr_t status = H5Aread(attr_id, type_id, &vlen_str);
+          if (status >= 0 && vlen_str) {
+            // Validate the string
+            size_t len = strlen(vlen_str);
+            if (is_valid_text_string(vlen_str, len)) {
+              metadata->channel_number = strdup(vlen_str);
+            }
+            // Free HDF5's memory
+            H5free_memory(vlen_str);
+          }
+        } else {
+          // Fixed-length string: read into buffer
+          size_t size = H5Tget_size(type_id);
+          char *temp_str = malloc(size + 1);
+          if (temp_str) {
+            memset(temp_str, 0, size + 1);
+            H5Aread(attr_id, type_id, temp_str);
+            temp_str[size] = '\0';
+
+            // Validate that the string contains printable characters
+            if (is_valid_text_string(temp_str, size)) {
+              metadata->channel_number = temp_str;
+            } else {
+              free(temp_str);
+              metadata->channel_number = NULL;
+            }
+          }
+        }
+        H5Tclose(type_id);
+        H5Aclose(attr_id);
+      }
+      H5Gclose(channel_group_id);
+    }
+  } else if (strstr(obj_name, "/read_")) {
+    // Multi-read format: /read_xxx/Raw/Signal
+    // Find the read group (extract read_xxx path)
+    char read_path[256];
+    strncpy(read_path, obj_name, sizeof(read_path));
+    char *raw_pos = strstr(read_path, "/Raw/Signal");
+    if (raw_pos) {
+      *raw_pos = '\0'; // Get read_xxx path
+
+      // Get channel_number from read_xxx/channel_id/channel_number
+      char channel_path[512];
+      snprintf(channel_path, sizeof(channel_path), "%s/channel_id", read_path);
+      hid_t channel_group_id = H5Gopen2(file_id, channel_path, H5P_DEFAULT);
+      if (channel_group_id >= 0) {
+        hid_t attr_id = H5Aopen(channel_group_id, "channel_number", H5P_DEFAULT);
+        if (attr_id >= 0) {
+          hid_t type_id = H5Aget_type(attr_id);
+          htri_t is_vlen = H5Tis_variable_str(type_id);
+
+          if (is_vlen > 0) {
+            // Variable-length string: read pointer to string
+            char *vlen_str = NULL;
+            herr_t status = H5Aread(attr_id, type_id, &vlen_str);
+            if (status >= 0 && vlen_str) {
+              // Validate the string
+              size_t len = strlen(vlen_str);
+              if (is_valid_text_string(vlen_str, len)) {
+                metadata->channel_number = strdup(vlen_str);
+              }
+              // Free HDF5's memory
+              H5free_memory(vlen_str);
+            }
+          } else {
+            // Fixed-length string: read into buffer
+            size_t size = H5Tget_size(type_id);
+            char *temp_str = malloc(size + 1);
+            if (temp_str) {
+              memset(temp_str, 0, size + 1);
+              H5Aread(attr_id, type_id, temp_str);
+              temp_str[size] = '\0';
+
+              // Validate that the string contains printable characters
+              if (is_valid_text_string(temp_str, size)) {
+                metadata->channel_number = temp_str;
+              } else {
+                free(temp_str);
+                metadata->channel_number = NULL;
+              }
+            }
+          }
+          H5Tclose(type_id);
+          H5Aclose(attr_id);
+        }
+        H5Gclose(channel_group_id);
+      }
+    }
+  }
+
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+}
+
 // Enhancer function to extract calibration parameters from Fast5 files
 void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   // Initialize calibration fields

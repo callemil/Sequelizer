@@ -184,6 +184,7 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
 
 void metadata_enhancer(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   extract_tracking_id(file_id, signal_dataset_id, metadata);
+  extract_channel_id(file_id, signal_dataset_id, metadata);
 }
 
 // Helper function to process files sequentially with progress tracking (your big for-loop)
