@@ -34,6 +34,7 @@ void free_fast5_metadata(fast5_metadata_t *metadata, size_t count);
 void extract_tracking_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 void extract_channel_id(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
+void extract_raw(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata);
 
 // Signal extraction functions
 float* read_fast5_signal(const char *filename, const char *read_id, size_t *signal_length);

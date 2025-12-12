@@ -742,6 +742,58 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
+// Enhancer function to extract raw signal metadata (median_before)
+void extract_raw(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
+  // Initialize fields
+  metadata->median_before = 0.0;
+  metadata->pore_level_available = false;
+
+  if (signal_dataset_id < 0) return;
+
+  // Suppress HDF5 error messages
+  H5E_auto2_t old_func;
+  void *old_client_data;
+  H5Eget_auto2(H5E_DEFAULT, &old_func, &old_client_data);
+  H5Eset_auto2(H5E_DEFAULT, NULL, NULL);
+
+  // Get the parent group of the signal dataset (the Raw group)
+  char obj_name[256];
+  ssize_t name_len = H5Iget_name(signal_dataset_id, obj_name, sizeof(obj_name));
+  if (name_len <= 0) {
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    return;
+  }
+
+  // Parse the path to find the Raw group
+  // For single-read: /Raw/Reads/Read_X/Signal -> /Raw/Reads/Read_X/
+  // For multi-read: /read_X/Raw/Signal -> /read_X/Raw/
+  char *last_slash = strrchr(obj_name, '/');
+  if (!last_slash) {
+    H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+    return;
+  }
+
+  // Null terminate at last slash to get parent group path
+  *last_slash = '\0';
+
+  // Open the Raw group (parent of Signal dataset)
+  hid_t raw_group_id = H5Gopen2(file_id, obj_name, H5P_DEFAULT);
+  if (raw_group_id >= 0) {
+    // Try to read median_before attribute
+    hid_t attr_id = H5Aopen(raw_group_id, "median_before", H5P_DEFAULT);
+    if (attr_id >= 0) {
+      if (H5Aread(attr_id, H5T_NATIVE_DOUBLE, &metadata->median_before) >= 0) {
+        metadata->pore_level_available = true;
+      }
+      H5Aclose(attr_id);
+    }
+    H5Gclose(raw_group_id);
+  }
+
+  // Restore HDF5 error reporting
+  H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
+}
+
 // **********************************************************************
 // Fast5 Metadata Reading Functions (ENHANCED)
 // **********************************************************************
