@@ -237,31 +237,31 @@ static void print_file_info_human(fast5_metadata_t *metadata, int count,
   }
   
   // Calculate statistics from stored metadata
-  uint32_t total_signal_length = 0;
-  uint32_t min_signal_length = UINT32_MAX;
-  uint32_t max_signal_length = 0;
+  uint32_t total_samples = 0;
+  uint32_t min_samples = UINT32_MAX;
+  uint32_t max_samples = 0;
   double total_duration = 0.0;
-  
+
   for (int i = 0; i < count; i++) {
-    uint32_t length = metadata[i].signal_length;
-    total_signal_length += length;
-    
-    if (length > 0) {
-      if (length < min_signal_length) min_signal_length = length;
-      if (length > max_signal_length) max_signal_length = length;
+    uint32_t samples = metadata[i].duration;
+    total_samples += samples;
+
+    if (samples > 0) {
+      if (samples < min_samples) min_samples = samples;
+      if (samples > max_samples) max_samples = samples;
     }
-    
+
     if (metadata[i].sample_rate > 0) {
       total_duration += (double)metadata[i].duration / metadata[i].sample_rate;
     }
   }
-  
-  if (count > 0 && min_signal_length == UINT32_MAX) min_signal_length = 0;
-  
+
+  if (count > 0 && min_samples == UINT32_MAX) min_samples = 0;
+
   printf("Signal statistics:\n");
-  printf("  Total samples: %u\n", total_signal_length);
-  printf("  Average length: %.0f samples\n", count > 0 ? (double)total_signal_length / count : 0.0);
-  printf("  Range: %u - %u samples\n", min_signal_length, max_signal_length);
+  printf("  Total samples: %u\n", total_samples);
+  printf("  Average length: %.0f samples\n", count > 0 ? (double)total_samples / count : 0.0);
+  printf("  Range: %u - %u samples\n", min_samples, max_samples);
   printf("  Total duration: %.1f seconds\n", total_duration);
   printf("  Average duration: %.1f seconds\n", count > 0 ? total_duration / count : 0.0);
   
@@ -270,21 +270,21 @@ static void print_file_info_human(fast5_metadata_t *metadata, int count,
     for (int i = 0; i < count; i++) {
       printf("  Read %d: %s (%u samples)\n", i + 1,
              metadata[i].read_id ? metadata[i].read_id : "unknown",
-             metadata[i].signal_length);
+             metadata[i].duration);
     }
   } else if (count <= 3) {
     printf("\nRead details:\n");
     for (int i = 0; i < count; i++) {
-      printf("  Read %d: %s (%u samples)\n", i + 1, 
-             metadata[i].read_id ? metadata[i].read_id : "unknown", 
-             metadata[i].signal_length);
+      printf("  Read %d: %s (%u samples)\n", i + 1,
+             metadata[i].read_id ? metadata[i].read_id : "unknown",
+             metadata[i].duration);
     }
   } else {
     printf("\nShowing first 3 reads (use --verbose for all):\n");
     for (int i = 0; i < 3; i++) {
-      printf("  Read %d: %s (%u samples)\n", i + 1, 
-             metadata[i].read_id ? metadata[i].read_id : "unknown", 
-             metadata[i].signal_length);
+      printf("  Read %d: %s (%u samples)\n", i + 1,
+             metadata[i].read_id ? metadata[i].read_id : "unknown",
+             metadata[i].duration);
     }
     printf("  ... and %d more reads\n", count - 3);
   }
@@ -307,22 +307,18 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
 
   // Write header
   fprintf(fp, "#sequelizer_summary_v1.0\n");
-  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\ttranslocation_time\tnum_samples\tmedian_pa\tmad_pa\n");
+  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\ttranslocation_time\tnum_samples\n");
 
   // Iterate through all files and reads
   for (size_t i = 0; i < file_count; i++) {
     if (results[i] && results_count[i] > 0) {
       for (int j = 0; j < results_count[i]; j++) {
-        // Use basecall stats if available, otherwise use 0.0
-        double median_pa = results[i][j].basecall_stats_available ? results[i][j].median_template : 0.0;
-        double mad_pa = results[i][j].basecall_stats_available ? results[i][j].mad_template : 0.0;
-
         // Extract basename from filename
         const char *basename = strrchr(filenames[i], '/');
         basename = basename ? basename + 1 : filenames[i];
 
         // Calculate translocation_time and start_time in seconds
-        double translocation_time = results[i][j].sample_rate > 0 ? results[i][j].signal_length / results[i][j].sample_rate : 0.0;
+        double translocation_time = results[i][j].sample_rate > 0 ? results[i][j].duration / results[i][j].sample_rate : 0.0;
         double start_time = results[i][j].sample_rate > 0 ? results[i][j].start_time / results[i][j].sample_rate : 0.0;
 
         // Extract mux from metadata (not currently available, use placeholder)
@@ -332,7 +328,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
         int channel = results[i][j].channel_number ? atoi(results[i][j].channel_number) : 0;
 
         // Write the row
-        fprintf(fp, "%s\t%s\t%s\t%d\t%.6f\t%d\t%.6f\t%u\t%.2f\t%.2f\n",
+        fprintf(fp, "%s\t%s\t%s\t%4d\t%7.4f\t%d\t%7.4f\t%6u\n",
                 basename,
                 results[i][j].read_id ? results[i][j].read_id : "unknown",
                 results[i][j].run_id ? results[i][j].run_id : "unknown",
@@ -340,9 +336,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
                 start_time,
                 mux,
                 translocation_time,
-                results[i][j].signal_length,
-                median_pa,
-                mad_pa);
+                results[i][j].duration);
       }
     }
   }
