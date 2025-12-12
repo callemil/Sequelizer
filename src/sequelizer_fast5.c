@@ -183,8 +183,8 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
 // **********************************************************************
 
 void metadata_enhancer(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
-  extract_tracking_id(file_id, signal_dataset_id, metadata);
-  extract_channel_id(file_id, signal_dataset_id, metadata);
+  extract_tracking_id(file_id, signal_dataset_id, metadata); // run_id
+  extract_channel_id(file_id, signal_dataset_id, metadata);  // channel_number
 }
 
 // Helper function to process files sequentially with progress tracking (your big for-loop)
@@ -307,7 +307,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
 
   // Write header
   fprintf(fp, "#sequelizer_summary_v1.0\n");
-  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\tduration\tnum_samples\tmedian_pa\tmad_pa\n");
+  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\ttranslocation_time\tnum_samples\tmedian_pa\tmad_pa\n");
 
   // Iterate through all files and reads
   for (size_t i = 0; i < file_count; i++) {
@@ -321,8 +321,8 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
         const char *basename = strrchr(filenames[i], '/');
         basename = basename ? basename + 1 : filenames[i];
 
-        // Calculate duration and start_time in seconds
-        double duration = results[i][j].sample_rate > 0 ? results[i][j].signal_length / results[i][j].sample_rate : 0.0;
+        // Calculate translocation_time and start_time in seconds
+        double translocation_time = results[i][j].sample_rate > 0 ? results[i][j].signal_length / results[i][j].sample_rate : 0.0;
         double start_time = results[i][j].sample_rate > 0 ? results[i][j].start_time / results[i][j].sample_rate : 0.0;
 
         // Extract mux from metadata (not currently available, use placeholder)
@@ -339,7 +339,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
                 channel,
                 start_time,
                 mux,
-                duration,
+                translocation_time,
                 results[i][j].signal_length,
                 median_pa,
                 mad_pa);

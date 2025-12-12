@@ -96,6 +96,7 @@ cmake-build-release/
 # Raw squiggle inputs
 *.raw
 # Text or binary dumps larger than a few kB can be listed here
+sequelizer_summary.txt
 
 # ----------------------------------------------------------------------
 #  Documentation build artifacts
