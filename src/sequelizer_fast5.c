@@ -308,7 +308,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
 
   // Write header
   fprintf(fp, "#sequelizer_summary_v1.0\n");
-  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\tmux\ttranslocation_time\tnum_samples\tmedian_before\n");
+  fprintf(fp, "filename\tread_id\trun_id\tchannel\tstart_time\ttranslocation_time\tnum_samples\tmedian_before\n");
 
   // Iterate through all files and reads
   for (size_t i = 0; i < file_count; i++) {
@@ -322,9 +322,6 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
         double translocation_time = results[i][j].sample_rate > 0 ? results[i][j].duration / results[i][j].sample_rate : 0.0;
         double start_time = results[i][j].sample_rate > 0 ? results[i][j].start_time / results[i][j].sample_rate : 0.0;
 
-        // Extract mux from metadata (not currently available, use placeholder)
-        int mux = 0;
-
         // Parse channel number
         int channel = results[i][j].channel_number ? atoi(results[i][j].channel_number) : 0;
 
@@ -332,13 +329,12 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
         double median_before = results[i][j].pore_level_available ? results[i][j].median_before : 0.0;
 
         // Write the row
-        fprintf(fp, "%s\t%s\t%s\t%4d\t%7.1f\t%2d\t%6.1f\t%6u\t%7.2f\n",
+        fprintf(fp, "%s\t%s\t%s\t%4d\t%7.1f\t%6.1f\t%6u\t%7.2f\n",
                 basename,
                 results[i][j].read_id ? results[i][j].read_id : "unknown",
                 results[i][j].run_id ? results[i][j].run_id : "unknown",
                 channel,
                 start_time,
-                mux,
                 translocation_time,
                 results[i][j].duration,
                 median_before);

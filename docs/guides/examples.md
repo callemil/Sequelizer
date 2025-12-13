@@ -4,13 +4,15 @@ title: Examples
 ---
 # Examples
 
+## Consider making a shortcut
+
 See [Getting Started](../getting-started.md) to learn how to build Sequelizer.  First, the build instructions leave you with a `sequelizer` binary in your `build` directory.  You might want to alias it for easier use:
 ```bash
 some_dir $ alias sequelizer='<whatever_your_path_is>/build/sequelizer'
 ```
 Now you can run Sequelizer commands with `sequelizer`.  The examples below assume you have done this.
 
-# A Look at Fast5 Files
+## A Look at Fast5 Files
 You can use Sequelizer to analyze Fast5 files.  A mature file format that holds nanopore information, both raw DNA measurements and lots of useful metadata.  We (and you?) want circuits, computers, programs, networks working on this data to extract relevant genomic inisights anytime, anywhere.
 
 To play around you'll want some Fast5 files on your system.  Here's how to download a sample dataset 
@@ -53,5 +55,5 @@ some_dir $ ./sequelizer fast5 sample_fast5 --recursive --summary
 ```
 This will create a `sequelizer_summary.txt` file in your current directory with a line for each read processed, and some basic statistics about it.
 
-# Before You Go
+## Before You Go
 Please help Sequelizer development.  Tell us what else you'd like to see here!
