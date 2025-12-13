@@ -742,11 +742,12 @@ void extract_calibration_parameters(hid_t file_id, hid_t signal_dataset_id, fast
   H5Eset_auto2(H5E_DEFAULT, old_func, old_client_data);
 }
 
-// Enhancer function to extract raw signal metadata (median_before)
+// Enhancer function to extract raw signal metadata (median_before and start_time)
 void extract_raw(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   // Initialize fields
   metadata->median_before = 0.0;
   metadata->pore_level_available = false;
+  metadata->start_time = 0;
 
   if (signal_dataset_id < 0) return;
 
@@ -780,13 +781,21 @@ void extract_raw(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metad
   hid_t raw_group_id = H5Gopen2(file_id, obj_name, H5P_DEFAULT);
   if (raw_group_id >= 0) {
     // Try to read median_before attribute
-    hid_t attr_id = H5Aopen(raw_group_id, "median_before", H5P_DEFAULT);
-    if (attr_id >= 0) {
-      if (H5Aread(attr_id, H5T_NATIVE_DOUBLE, &metadata->median_before) >= 0) {
+    hid_t median_attr = H5Aopen(raw_group_id, "median_before", H5P_DEFAULT);
+    if (median_attr >= 0) {
+      if (H5Aread(median_attr, H5T_NATIVE_DOUBLE, &metadata->median_before) >= 0) {
         metadata->pore_level_available = true;
       }
-      H5Aclose(attr_id);
+      H5Aclose(median_attr);
     }
+
+    // Try to read start_time attribute
+    hid_t time_attr = H5Aopen(raw_group_id, "start_time", H5P_DEFAULT);
+    if (time_attr >= 0) {
+      H5Aread(time_attr, H5T_NATIVE_UINT64, &metadata->start_time);
+      H5Aclose(time_attr);
+    }
+
     H5Gclose(raw_group_id);
   }
 

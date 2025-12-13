@@ -185,7 +185,7 @@ static void initialize_data_structures(size_t file_count, fast5_metadata_t ***re
 void metadata_enhancer(hid_t file_id, hid_t signal_dataset_id, fast5_metadata_t *metadata) {
   extract_tracking_id(file_id, signal_dataset_id, metadata); // run_id
   extract_channel_id(file_id, signal_dataset_id, metadata);  // channel_number
-  extract_raw(file_id, signal_dataset_id, metadata);         // median_before
+  extract_raw(file_id, signal_dataset_id, metadata);         // median_before, start_time
 }
 
 // Helper function to process files sequentially with progress tracking (your big for-loop)
@@ -332,7 +332,7 @@ static void write_summary_file(const char *summary_path, fast5_metadata_t **resu
         double median_pa = results[i][j].pore_level_available ? results[i][j].median_before : 0.0;
 
         // Write the row
-        fprintf(fp, "%s\t%s\t%s\t%4d\t%7.4f\t%d\t%7.4f\t%6u\t%7.2f\n",
+        fprintf(fp, "%s\t%s\t%s\t%4d\t%9.3f\t%d\t%7.4f\t%6u\t%7.2f\n",
                 basename,
                 results[i][j].read_id ? results[i][j].read_id : "unknown",
                 results[i][j].run_id ? results[i][j].run_id : "unknown",
